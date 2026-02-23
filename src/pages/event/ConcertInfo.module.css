@@ -34,7 +34,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
-    margin-bottom: 4rem;
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -81,8 +80,7 @@
 /* --- Setlist Layout --- */
 .setlistContainer {
     display: grid;
-    /* Desktop: [Part 1] [Intermission] [Part 2] */
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
     align-items: stretch;
 }
@@ -162,34 +160,20 @@
     opacity: 0.8;
 }
 
-/* --- Intermission (Desktop: Vertical Divider) --- */
+/* --- Divider (between Info & Setlist) --- */
 .intermission {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
-    color: var(--text-secondary);
-    font-family: var(--font-hand);
-    position: relative;
-    margin: 0;
-    /* Clear grid margin issues */
-}
-
-.intermissionText {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    text-transform: uppercase;
-    letter-spacing: 0.3rem;
-    font-size: 1.2rem;
-    opacity: 0.5;
-    font-weight: bold;
+    width: 100%;
+    margin: 3.5rem 0;
+    /* Center position */
 }
 
 .intermissionLine {
-    width: 2px;
-    height: 100px;
-    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1), transparent);
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.15), transparent);
 }
 
 
@@ -202,26 +186,7 @@
     .setlistContainer {
         /* Mobile: Stack vertically */
         grid-template-columns: 1fr;
-        gap: 3rem;
-    }
-
-    .intermission {
-        /* Switch to horizontal divider look */
-        flex-direction: row;
-        width: 100%;
-        margin: 1rem 0;
-    }
-
-    .intermissionText {
-        writing-mode: horizontal-tb;
-        letter-spacing: 0.2rem;
-        font-size: 1.3rem;
-    }
-
-    .intermissionLine {
-        width: 60px;
-        height: 2px;
-        background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1), transparent);
+        gap: 2.5rem;
     }
 }
 

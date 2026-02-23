@@ -1,0 +1,51 @@
+﻿[36mvite v7.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m??[39m 22 modules transformed.
+node.exe : [31m??[39m Build failed in 209ms
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files
+\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31m??[39 
+   m Build failed in 209ms:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+C:/Users/culwo/OneDrive/諛뷀깢 ?붾㈃/泥좎슦/00. Projects/MMM/Ate
+mpo/src/pages/event/Admin.jsx:458:15: ERROR: Unterminate
+d regular expression[31m
+file: [36mC:/Users/culwo/OneDrive/諛뷀깢 ?붾㈃/泥좎슦/00. Proje
+cts/MMM/Atempo/src/pages/event/Admin.jsx:458:15[31m
+[33m
+[33mUnterminated regular expression[33m
+456 |              </div>
+457 |          </div>
+458 |          </div >
+    |                 ^
+459 |      );
+460 |  };
+[31m
+    at failureErrorWithLog (C:\Users\culwo\OneDrive\諛뷀깢 
+?붾㈃\泥좎슦\00. Projects\MMM\Atempo\node_modules\esbuild\lib
+\main.js:1467:15)
+    at C:\Users\culwo\OneDrive\諛뷀깢 ?붾㈃\泥좎슦\00. Projects\
+MMM\Atempo\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\culwo\OneD
+rive\諛뷀깢 ?붾㈃\泥좎슦\00. Projects\MMM\Atempo\node_modules\es
+build\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\culwo\OneDrive\諛뷀깢
+ ?붾㈃\泥좎슦\00. Projects\MMM\Atempo\node_modules\esbuild\li
+b\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\culwo\OneDrive\諛뷀
+깢 ?붾㈃\泥좎슦\00. Projects\MMM\Atempo\node_modules\esbuild\l
+ib\main.js:581:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/strea
+ms/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392
+:5)
+    at Pipe.onStreamRead (node:internal/stream_base_comm
+ons:189:23)[39m

@@ -1,11 +1,10 @@
 ﻿/**
  * Atempo Cloud Functions
  *
- * 1. receiveDeposit: Accepts deposit notifications (MacroDroid -> Firebase)
- * 2. sendTicketSMS: Sends ticket email when reservation status changes to paid
+ * 1. sendTicketSMS: Sends ticket email when reservation status changes to paid
  */
 
-const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
@@ -57,107 +56,25 @@ const getMailTransport = () => {
 };
 
 /**
- * Deposit notification API (MacroDroid -> Firebase)
- * POST /receiveDeposit
- * Body: { name: "홍길동", amount: 20000 }
- */
-exports.receiveDeposit = onRequest({ cors: true, region: "asia-northeast3" }, async (req, res) => {
-    // POST only
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    try {
-        const { name, amount } = req.body || {};
-
-        if (!name || !amount) {
-            return res.status(400).json({ error: "name and amount are required" });
-        }
-
-        const normalizedAmount = String(amount).replace(/[^\d]/g, "");
-        const depositAmount = parseInt(normalizedAmount, 10);
-        if (!normalizedAmount || !Number.isFinite(depositAmount)) {
-            return res.status(400).json({ error: "amount must be a number" });
-        }
-
-        const depositTime = new Date();
-
-        console.log(`[Deposit] ${name} / ${depositAmount.toLocaleString()} / ${depositTime.toISOString()}`);
-
-        // 1) Find pending reservations with same name
-        const reservationsRef = db.collection("reservations");
-        const snapshot = await reservationsRef
-            .where("name", "==", name)
-            .where("status", "==", "pending")
-            .get();
-
-        if (snapshot.empty) {
-            console.log(`[Match miss] no pending reservation: ${name}`);
-            return res.status(404).json({
-                success: false,
-                message: `No pending reservation for ${name}.`
-            });
-        }
-
-        // 2) Ambiguous name handling
-        if (snapshot.size > 1) {
-            // Mark all as ambiguous
-            const batch = db.batch();
-            snapshot.docs.forEach(doc => {
-                batch.update(doc.ref, { status: "ambiguous" });
-            });
-            await batch.commit();
-
-            console.log(`[Manual review] multiple pending reservations: ${name}`);
-            return res.status(200).json({
-                success: false,
-                message: "Multiple pending reservations found. Manual review required.",
-                count: snapshot.size
-            });
-        }
-
-        // 3) Single match - mark paid (ignore amount)
-        const targetDoc = snapshot.docs[0];
-
-        // 4) Match success - issue token and mark paid
-        const token = "t_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-
-        await targetDoc.ref.update({
-            status: "paid",
-            depositTime: depositTime.toISOString(),
-            token: token
-        });
-
-        console.log(`[Match success] ${name} paid. Token: ${token}`);
-
-        return res.status(200).json({
-            success: true,
-            message: `${name} reservation marked as paid.`,
-            token: token
-        });
-
-    } catch (error) {
-        console.error("[Error]", error);
-        return res.status(500).json({ error: error.message });
-    }
-});
-
-/**
  * Reservation status change -> send email
- * Firestore Trigger: reservations/{docId} document update
+ * Firestore Trigger: events/{eventId}/reservations/{docId} document update
  */
 exports.sendTicketSMS = onDocumentUpdated(
     {
-        document: "reservations/{docId}",
+        document: "events/{eventId}/reservations/{docId}",
         region: "asia-northeast3",
         secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, EMAIL_FROM_NAME, PUBLIC_BASE_URL]
     },
     async (event) => {
         const beforeData = event.data.before.data();
         const afterData = event.data.after.data();
+        const eventId = event.params.eventId;
 
-        // Only on status change to paid
-        if (beforeData.status !== "paid" && afterData.status === "paid") {
+        // Changed status to paid or depositConfirmed changed
+        const wasPaid = beforeData.status === "paid" || beforeData.depositConfirmed === true;
+        const isPaid = afterData.status === "paid" || afterData.depositConfirmed === true;
+
+        if (!wasPaid && isPaid) {
             const { name, email, token } = afterData;
             const emailAttemptedAt = new Date().toISOString();
 
@@ -171,6 +88,24 @@ exports.sendTicketSMS = onDocumentUpdated(
                 return null;
             }
 
+            let eventTitle = "POSTA";
+            let eventDate = "";
+            let eventTime = "";
+            let eventLocation = "";
+            let ticketCount = afterData.ticketCount || 1;
+            try {
+                const eventDoc = await db.collection("events").doc(eventId).get();
+                if (eventDoc.exists) {
+                    const data = eventDoc.data();
+                    eventTitle = data.title || eventTitle;
+                    eventDate = data.date || "";
+                    eventTime = data.time || "";
+                    eventLocation = data.location || "";
+                }
+            } catch (err) {
+                console.error("Failed to fetch event title", err);
+            }
+
             await event.data.after.ref.update({
                 emailStatus: "sending",
                 emailAttemptedAt,
@@ -179,19 +114,38 @@ exports.sendTicketSMS = onDocumentUpdated(
             });
 
             // Ticket link
-            const baseUrl = PUBLIC_BASE_URL.value() || "https://atempo.vercel.app";
-            const ticketUrl = `${baseUrl.replace(/\/+$/, "")}/?auth=${token}`;
+            const baseUrl = afterData.originUrl || PUBLIC_BASE_URL.value() || "https://melodicapp.web.app";
+            const ticketUrl = `${baseUrl.replace(/\/+$/, "")}/e/${eventId}?auth=${token}`;
 
-            const subject = `[Atempo x Wave] ${name}님 예약이 완료되었습니다`;
-            const text = `[Atempo x Wave] ${name}님 예약이 완료되었습니다.\n\n아래 링크를 클릭하여 티켓을 확인하세요.\n${ticketUrl}`;
+            const subject = `[${eventTitle}] 예매가 확정되었습니다! 모바일 티켓을 확인하세요.`;
+            const text = `[${eventTitle}] ${name}님 예약이 완료되었습니다.\n\n아래 링크를 클릭하여 모바일 티켓을 확인하세요.\n${ticketUrl}`;
             const html = `
-                <p><strong>Atempo x Wave</strong> ${name}님 예약이 완료되었습니다.</p>
-                <p>아래 링크를 클릭하여 티켓을 확인하세요.</p>
-                <p><a href="${ticketUrl}">${ticketUrl}</a></p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+                    <h2 style="color: #d04c31; margin-top: 0;">예매가 확정되었습니다! 🎉</h2>
+                    <p>안녕하세요, <strong>${name}</strong>님.</p>
+                    <p>결제가 성공적으로 확인되어 예매가 확정되었습니다.<br/>아래 버튼을 클릭하여 모바일 티켓(QR)을 확인해주세요.</p>
+                    
+                    <div style="text-align: center; margin: 40px 0;">
+                        <a href="${ticketUrl}" style="background-color: #d04c31; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">모바일 티켓 열기</a>
+                    </div>
+                    
+                    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #eee;">
+                        <h3 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; font-size: 15px;">🎟 공연/행사 정보</h3>
+                        <p style="margin: 8px 0;"><strong>공연명:</strong> ${eventTitle}</p>
+                        <p style="margin: 8px 0;"><strong>일시:</strong> ${eventDate} ${eventTime}</p>
+                        <p style="margin: 8px 0;"><strong>장소:</strong> ${eventLocation || '정보 없음'}</p>
+                        <p style="margin: 8px 0;"><strong>예매 매수:</strong> ${ticketCount}장</p>
+                    </div>
+                    
+                    <p style="margin-top: 40px; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 20px; line-height: 1.6;">
+                        * 입장 시 모바일 티켓(QR)을 제시해 주시기 바랍니다.<br/>
+                        * 본 메일은 발신 전용 메일입니다.
+                    </p>
+                </div>
             `.trim();
 
             try {
-                const fromName = (EMAIL_FROM_NAME.value() || "Atempo x Wave").trim();
+                const fromName = (EMAIL_FROM_NAME.value() || "POSTA Ticketing").trim();
                 const fromUser = (GMAIL_USER.value() || "").trim();
                 const transporter = getMailTransport();
 
@@ -233,7 +187,8 @@ exports.deletePerformer = onCall({ region: "asia-northeast3" }, async (request) 
     }
 
     await getAuth().deleteUser(uid);
-    await db.collection("users").doc(uid).delete();
+    // Since we don't know which event, we can't delete from events/{eventId}/performers easily.
+    // Client should delete from firestore manually.
 
     return { success: true };
 });
@@ -264,12 +219,15 @@ exports.adminResetPassword = onCall({ region: "asia-northeast3" }, async (reques
 exports.verifyTicket = onCall({ region: "asia-northeast3" }, async (request) => {
     const rawToken = request.data?.token || "";
     const token = String(rawToken).trim();
+    const eventId = String(request.data?.eventId || "").trim();
 
-    if (!token) {
-        throw new HttpsError("invalid-argument", "token is required.");
+    if (!token || !eventId) {
+        throw new HttpsError("invalid-argument", "token and eventId are required.");
     }
 
     const snapshot = await db
+        .collection("events")
+        .doc(eventId)
         .collection("reservations")
         .where("token", "==", token)
         .limit(1)
@@ -282,7 +240,7 @@ exports.verifyTicket = onCall({ region: "asia-northeast3" }, async (request) => 
     const doc = snapshot.docs[0];
     const data = doc.data();
 
-    if (data.status !== "paid") {
+    if (data.status !== "paid" && !data.depositConfirmed) {
         return { success: false };
     }
 

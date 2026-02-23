@@ -82,7 +82,7 @@
 .flipCard {
     width: 100%;
     max-width: 280px;
-    perspective: 1200px;
+    perspective: 2000px;
     cursor: pointer;
 }
 
@@ -91,6 +91,8 @@
     width: 100%;
     transform-style: preserve-3d;
     transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Set backface hack to fix blur on webkit */
+    -webkit-transform-style: preserve-3d;
 }
 
 .dragging {
@@ -105,11 +107,16 @@
     position: relative;
     width: 100%;
     backface-visibility: hidden;
-    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+    /* Font smoothing for crisp text during 3d transform */
+    -webkit-font-smoothing: antialiased;
+    transform: translateZ(0);
+    /* Forces GPU layer without z-fighting */
 }
 
 .flipFront {
     transform: rotateY(0deg);
+    z-index: 2;
 }
 
 .flipBack {
@@ -117,19 +124,20 @@
     top: 0;
     left: 0;
     transform: rotateY(180deg);
+    z-index: 1;
 }
 
 @keyframes flipHint {
     0% {
-        transform: rotateY(0deg);
+        transform: rotateY(0deg) translateZ(0);
     }
 
     40% {
-        transform: rotateY(180deg);
+        transform: rotateY(180deg) translateZ(0);
     }
 
     100% {
-        transform: rotateY(360deg);
+        transform: rotateY(360deg) translateZ(0);
     }
 }
 

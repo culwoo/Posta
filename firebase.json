@@ -30,6 +30,9 @@
             "port": 4000
         }
     },
+    "storage": {
+        "rules": "storage.rules"
+    },
     "hosting": {
         "public": "dist",
         "ignore": [

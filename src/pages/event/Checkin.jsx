@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { db, collection, doc, getDocs, onSnapshot, query, updateDoc, where } from '../api/firebase';
+import { db, collection, doc, getDocs, onSnapshot, query, updateDoc, where } from '../../api/firebase';
+import { useEvent } from "../../contexts/EventContext";
 import classes from './Checkin.module.css';
 
 const parseToken = (rawText) => {
@@ -13,6 +14,7 @@ const parseToken = (rawText) => {
 };
 
 const Checkin = () => {
+    const { eventId } = useEvent();
     const videoRef = useRef(null);
     const readerRef = useRef(null);
     const [scanStatus, setScanStatus] = useState(null);
@@ -21,6 +23,9 @@ const Checkin = () => {
     const [isMobile, setIsMobile] = useState(false);
     const [requiresGesture, setRequiresGesture] = useState(false);
     const [scanEnabled, setScanEnabled] = useState(true);
+    const [isMirrored, setIsMirrored] = useState(true); // 기본을 좌우반전(전면카메라 주사용 상정)으로 설정
+
+    // ... (resize logic omitted)
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -51,7 +56,17 @@ const Checkin = () => {
     }, []);
 
     useEffect(() => {
-        const q = query(collection(db, 'reservations'), where('status', '==', 'paid'));
+        // 모바일(핸드폰) 환경일 경우 기본적으로 후면 카메라를 상정하여 거울모드 해제
+        if (isMobile) {
+            setIsMirrored(false);
+        } else {
+            setIsMirrored(true);
+        }
+    }, [isMobile]);
+
+    useEffect(() => {
+        if (!eventId) return;
+        const q = query(collection(db, 'events', eventId, 'reservations'), where('status', '==', 'paid'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             let paidCount = 0;
             let checkedInCount = 0;
@@ -63,7 +78,9 @@ const Checkin = () => {
             setTotals({ paid: paidCount, checkedIn: checkedInCount });
         });
         return unsubscribe;
-    }, []);
+    }, [eventId]);
+
+    // ... (scanner logic)
 
     useEffect(() => {
         if (typeof navigator === 'undefined') return;
@@ -124,7 +141,11 @@ const Checkin = () => {
         return () => {
             isActive = false;
             if (readerRef.current) {
-                readerRef.current.reset();
+                if (typeof readerRef.current.reset === 'function') {
+                    readerRef.current.reset();
+                } else if (typeof readerRef.current.stopContinuousDecode === 'function') {
+                    readerRef.current.stopContinuousDecode();
+                }
             }
         };
     }, [isMobile, scanEnabled]);
@@ -132,11 +153,15 @@ const Checkin = () => {
     const handleToken = async (rawText) => {
         const token = parseToken(rawText);
         if (!token) return;
+        if (!eventId) {
+            setScanStatus({ type: 'error', message: '이벤트 정보를 불러오지 못했습니다.' });
+            return;
+        }
 
         setScanStatus({ type: 'loading', message: '입장 상태 확인 중...' });
 
         try {
-            const q = query(collection(db, 'reservations'), where('token', '==', token));
+            const q = query(collection(db, 'events', eventId, 'reservations'), where('token', '==', token));
             const snapshot = await getDocs(q);
 
             if (snapshot.empty) {
@@ -161,7 +186,7 @@ const Checkin = () => {
                 return;
             }
 
-            await updateDoc(doc(db, 'reservations', targetDoc.id), {
+            await updateDoc(doc(db, 'events', eventId, 'reservations', targetDoc.id), {
                 checkedIn: true,
                 checkedInAt: new Date().toISOString()
             });
@@ -202,10 +227,18 @@ const Checkin = () => {
             </section>
 
             <section className={classes.scanner}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', maxWidth: '420px', marginBottom: '0.5rem' }}>
+                    <button
+                        onClick={() => setIsMirrored(!isMirrored)}
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                    >
+                        {isMirrored ? '거울모드 끄기' : '거울모드 켜기'}
+                    </button>
+                </div>
                 <div className={classes.videoFrame}>
                     <video
                         ref={videoRef}
-                        className={`${classes.video} ${isMobile ? classes.noMirror : ''}`}
+                        className={`${classes.video} ${!isMirrored ? classes.noMirror : ''}`}
                         muted
                         playsInline
                     />

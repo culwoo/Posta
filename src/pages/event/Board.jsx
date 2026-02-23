@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc } from '../api/firebase';
-import { useAuth } from '../contexts/AuthContext';
+import { db, collection, query, orderBy, onSnapshot, deleteDoc, doc } from '../../api/firebase';
+import { useAuth } from '../../contexts/AuthContext';
+import { useEvent } from '../../contexts/EventContext';
 import { Plus } from 'lucide-react';
-import StickyNote from '../components/StickyNote';
-import WriteModal from '../components/WriteModal';
-import PostModal from '../components/PostModal';
+import StickyNote from '../../components/StickyNote';
+import WriteModal from '../../components/WriteModal';
+import PostModal from '../../components/PostModal';
 import classes from './Board.module.css';
 
 const Board = () => {
+    const { eventId } = useEvent();
     const { user } = useAuth();
     const [posts, setPosts] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -16,13 +18,15 @@ const Board = () => {
 
 
     useEffect(() => {
-        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+        if (!eventId) return;
+
+        const q = query(collection(db, "events", eventId, "posts"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setPosts(allPosts);
         });
         return unsubscribe;
-    }, []);
+    }, [eventId]);
 
     const handleViewPost = (post) => {
         setViewingPost(post);
@@ -54,7 +58,7 @@ const Board = () => {
     const handleDelete = async (postId) => {
         if (!window.confirm("정말 이 응원 메시지를 삭제하시겠습니까?")) return;
         try {
-            await deleteDoc(doc(db, "posts", postId));
+            await deleteDoc(doc(db, "events", eventId, "posts", postId));
         } catch (err) {
             console.error("Failed to delete post:", err);
             alert("삭제 실패");

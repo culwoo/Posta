@@ -3,6 +3,7 @@ import classes from './PostModal.module.css';
 import { X, Trash2 } from 'lucide-react';
 import { db, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp } from '../api/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useEvent } from '../contexts/EventContext';
 
 const PostModal = ({ post, onClose }) => {
     const { user } = useAuth();
@@ -19,13 +20,14 @@ const PostModal = ({ post, onClose }) => {
         };
     }, []);
 
+    const { eventId } = useEvent();
+
     // Fetch Comments
     useEffect(() => {
-        if (!post?.id) return;
+        if (!post?.id || !eventId) return;
 
         const q = query(
-            collection(db, "comments"),
-            where("postId", "==", post.id),
+            collection(db, "events", eventId, "posts", post.id, "comments"),
             orderBy("createdAt", "asc")
         );
 
@@ -37,16 +39,21 @@ const PostModal = ({ post, onClose }) => {
         });
 
         return () => unsubscribe();
-    }, [post?.id]);
+    }, [post?.id, eventId]);
 
     const handleSubmitComment = async (e) => {
         e.preventDefault();
         if (!newComment.trim() || !user || isSubmitting) return;
 
+        if (!eventId) {
+            alert("이벤트 정보가 없습니다.");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            await addDoc(collection(db, "comments"), {
-                postId: post.id,
+            await addDoc(collection(db, "events", eventId, "posts", post.id, "comments"), {
+                postId: post.id, // Redundant but harmless, keeping for reference
                 content: newComment.trim(),
                 author: user.name || '알 수 없음',
                 authorUid: user.uid,
@@ -63,8 +70,9 @@ const PostModal = ({ post, onClose }) => {
 
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
+        if (!eventId) return;
         try {
-            await deleteDoc(doc(db, "comments", commentId));
+            await deleteDoc(doc(db, "events", eventId, "posts", post.id, "comments", commentId));
         } catch (error) {
             console.error("Error deleting comment:", error);
             alert("삭제 실패");

@@ -18,6 +18,7 @@ import {
     connectFirestoreEmulator,
     collection,
     doc,
+    getDoc,
     setDoc,
     addDoc,
     deleteDoc,
@@ -27,13 +28,21 @@ import {
     where,
     orderBy,
     onSnapshot,
-    serverTimestamp
+    serverTimestamp,
+    limit
 } from "firebase/firestore";
 import {
     getFunctions,
     connectFunctionsEmulator,
     httpsCallable
 } from "firebase/functions";
+import {
+    getStorage,
+    ref as storageRef,
+    uploadBytes,
+    getDownloadURL,
+    deleteObject
+} from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -52,6 +61,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, "asia-northeast3");
+export const storage = getStorage(app);
 
 const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
 if (useEmulators) {
@@ -75,6 +85,7 @@ export {
 export {
     collection,
     doc,
+    getDoc,
     setDoc,
     addDoc,
     deleteDoc,
@@ -84,7 +95,11 @@ export {
     where,
     orderBy,
     onSnapshot,
-    serverTimestamp
+    serverTimestamp,
+    limit
 };
 
 export { httpsCallable };
+
+// Re-export Storage Functions
+export { storageRef, uploadBytes, getDownloadURL, deleteObject };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, getDocs, query, where, addDoc, doc, updateDoc } from '../api/firebase';
+import { db, collection, getDocs, query, where, addDoc, doc, updateDoc, orderBy } from '../api/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useEvent } from '../contexts/EventContext';
 import { X } from 'lucide-react';
 import classes from './WriteModal.module.css';
 
@@ -14,12 +15,15 @@ const WriteModal = ({ onClose, postToEdit = null }) => {
 
     // Privacy Settings
     const [isPublic, setIsPublic] = useState(true);
-    const [selectedPerformers, setSelectedPerformers] = useState([]); // Array of UIDs
+    const [selectedPerformers, setSelectedPerformers] = useState([]); // Array of IDs
+
+    const { eventId } = useEvent();
 
     useEffect(() => {
+        if (!eventId) return;
         const fetchPerformers = async () => {
             try {
-                const q = query(collection(db, "users"), where("role", "==", "performer"));
+                const q = query(collection(db, "events", eventId, "performers"), orderBy("createdAt", "desc"));
                 const snapshot = await getDocs(q);
                 const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setPerformers(list);
@@ -28,7 +32,7 @@ const WriteModal = ({ onClose, postToEdit = null }) => {
             }
         };
         fetchPerformers();
-    }, []);
+    }, [eventId]);
 
     // Initialize state if editing
     useEffect(() => {
@@ -65,6 +69,10 @@ const WriteModal = ({ onClose, postToEdit = null }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!content.trim()) return;
+        if (!eventId) {
+            alert("이벤트 정보가 없습니다.");
+            return;
+        }
 
         // Get names of selected performers for display purposes
         const toNames = isPublic
@@ -88,10 +96,10 @@ const WriteModal = ({ onClose, postToEdit = null }) => {
             };
 
             if (postToEdit) {
-                await updateDoc(doc(db, "posts", postToEdit.id), postData);
+                await updateDoc(doc(db, "events", eventId, "posts", postToEdit.id), postData);
             } else {
                 // New Post
-                await addDoc(collection(db, "posts"), {
+                await addDoc(collection(db, "events", eventId, "posts"), {
                     ...postData,
                     from: user?.name || '익명',
                     fromUid: user?.uid || 'anonymous',

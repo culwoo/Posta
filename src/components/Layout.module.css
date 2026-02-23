@@ -13,7 +13,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    /* top padding added to avoid overlap with dynamic island and respect safe area */
+    padding: 3.5rem 2rem 1rem 2rem;
     background-color: transparent;
     /* Seamless with warm bg */
     /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); Removed to feel cleaner like original */
@@ -23,7 +24,7 @@
     font-size: 1.8rem;
     font-weight: bold;
     color: var(--primary-color);
-    /* Atempo Primary */
+    /* Posta Primary */
     text-decoration: none;
     display: flex;
     align-items: center;
@@ -115,6 +116,8 @@
     /* Remove white background to let container warm bg show through */
     /* background-color: #fcfcfc; */
     padding-top: 1rem;
+    min-width: 0;
+    width: 100%;
 }
 
 /* Disabled State for Reservation Page */
@@ -128,7 +131,7 @@
     .navbar {
         flex-direction: column;
         gap: 1rem;
-        padding: 1rem;
+        padding: 3.5rem 1rem 1rem 1rem;
     }
 
     .logo {

@@ -15,6 +15,19 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* 세로 스크롤바만 숨기기 (가로는 유지) */
+::-webkit-scrollbar {
+    width: 0px;
+    /* 세로 스크롤바 너비 0으로 숨김 */
+    height: 8px;
+    /* 가로 스크롤바 두께는 유지 */
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
 h1,
 h2,
 h3,

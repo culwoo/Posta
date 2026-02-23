@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, DoorOpen, Music, Coffee, Flame } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { db, doc, onSnapshot, collection, query, where } from '../api/firebase';
-import AudienceEntry from '../components/AudienceEntry';
+import { useAuth } from '../../contexts/AuthContext';
+import { useEvent } from '../../contexts/EventContext';
+import { db, doc, onSnapshot, collection, query, where } from '../../api/firebase';
+import AudienceEntry from '../../components/AudienceEntry';
 import classes from './Home.module.css';
 
 const Home = () => {
+    const { eventId, eventData } = useEvent();
     const { user, updateNickname, authInitialized } = useAuth();
     const [rotationBase, setRotationBase] = useState(0);
     const [dragRotation, setDragRotation] = useState(0);
@@ -34,20 +36,22 @@ const Home = () => {
     }, [user?.isVerified, user?.name]);
 
     useEffect(() => {
-        if (!user?.isVerified || !authInitialized) {
+        if (!user?.isVerified || !authInitialized || !eventId) {
             setCheckinStatus(null);
             return;
         }
 
         let unsubscribe;
 
+        // In Posta, we prioritize checking by user token matching the event's reservations
+        // Since we are moving to event-scoped reservations, we query the event's reservation collection
+        // where `token` matches `user.token` OR `uid` matches `user.uid` (if we stored uid).
+        // Let's stick to `token` for now as legacy support, assuming user.token is still valid.
+
         if (user.token) {
-            // Priority 1: Token is the most reliable identifier (handles DB resets/stale IDs)
-            const q = query(collection(db, 'reservations'), where('token', '==', user.token));
+            const q = query(collection(db, 'events', eventId, 'reservations'), where('token', '==', user.token));
             unsubscribe = onSnapshot(q, (snapshot) => {
                 if (snapshot.empty) {
-                    // Only log, don't nullify immediately if we want to try fallback? 
-                    // But token should be unique. if empty, it's invalid.
                     setCheckinStatus(null);
                     return;
                 }
@@ -59,28 +63,13 @@ const Home = () => {
             }, (err) => {
                 console.error("Token snapshot error:", err);
             });
-        } else if (user.reservationId) {
-            // Priority 2: Fallback to ID if token is missing (legacy support)
-            const reservationRef = doc(db, 'reservations', user.reservationId);
-            unsubscribe = onSnapshot(reservationRef, (snap) => {
-                if (!snap.exists()) {
-                    setCheckinStatus(null);
-                    return;
-                }
-                const data = snap.data();
-                setCheckinStatus({
-                    checkedIn: Boolean(data.checkedIn),
-                    checkedInAt: data.checkedInAt || null
-                });
-            }, (err) => {
-                console.error("ID snapshot error:", err);
-            });
         }
+        // Fallback or multiple event handling might be needed later.
 
         return () => {
             if (unsubscribe) unsubscribe();
         };
-    }, [user?.isVerified, user?.reservationId, user?.token, authInitialized]);
+    }, [user?.isVerified, user?.token, authInitialized, eventId]);
 
     const handleFlip = () => {
         if (!user?.isVerified) return;
@@ -169,11 +158,13 @@ const Home = () => {
                                 >
                                     <div
                                         className={`${classes.flipInner} ${isDragging ? classes.dragging : ''}`}
-                                        style={{ transform: `rotateY(${rotationBase + dragRotation}deg)` }}
+                                        style={{ transform: `rotateY(${rotationBase + dragRotation}deg) translateZ(0)` }}
                                     >
                                         <div className={`${classes.flipFace} ${classes.flipFront}`}>
                                             <div className={classes.posterCard}>
-                                                <img src="/poster.png" alt="공연 포스터" className={classes.posterImage} />
+                                                {eventData?.posterUrl && (
+                                                    <img src={eventData.posterUrl} alt="공연 포스터" className={classes.posterImage} />
+                                                )}
                                             </div>
                                         </div>
                                         <div className={`${classes.flipFace} ${classes.flipBack}`}>
@@ -184,7 +175,7 @@ const Home = () => {
                                                     </div>
                                                 )}
                                                 <div className={classes.ticketHeader}>
-                                                    <span className={classes.ticketTitle}>Atempo x Wave</span>
+                                                    <span className={classes.ticketTitle}>{eventData?.title || '공연 티켓'}</span>
                                                 </div>
                                                 <div className={classes.ticketBody}>
                                                     <img
@@ -193,7 +184,7 @@ const Home = () => {
                                                         className={classes.qrCode}
                                                     />
                                                     <p className={classes.ticketName}>{user.name} 님</p>
-                                                    <p className={classes.ticketInfo}>2026.01.31 17:30 | 그림라이브하우스</p>
+                                                    <p className={classes.ticketInfo}>{eventData?.date} {eventData?.time} | {eventData?.location}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -203,8 +194,9 @@ const Home = () => {
                             </>
                         ) : (
                             <div className={classes.posterCard}>
-                                {/* Use standard img tag for external/asset images if Lucide Image is placeholder */}
-                                <img src="/poster.png" alt="공연 포스터" className={classes.posterImage} />
+                                {eventData?.posterUrl && (
+                                    <img src={eventData.posterUrl} alt="공연 포스터" className={classes.posterImage} />
+                                )}
                             </div>
                         )}
                     </section>
@@ -240,59 +232,61 @@ const Home = () => {
                         <div className={classes.timelineContainer}>
                             <div className={classes.timelineLine}></div>
 
-                            {/* Item 1: 18:30 (Left) */}
-                            <div className={`${classes.timelineItem} ${classes.leftAlign}`}>
-                                <div className={classes.contentBox}>
-                                    <span className={classes.timeText}>17:00</span>
-                                    <div className={classes.itemTitle}>관객 입장</div>
-                                </div>
-                                <div className={`${classes.centerIcon} ${classes.iconGreen}`}>
-                                    <DoorOpen size={16} />
-                                </div>
-                                <div className={classes.dummyBox}></div>
-                            </div>
+                            {(() => {
+                                const items = (eventData?.timeline && eventData.timeline.length > 0)
+                                    ? eventData.timeline
+                                    : [
+                                        { id: '1', time: '17:00', title: '관객 입장', icon: 'door' },
+                                        { id: '2', time: '17:30', title: 'Wave 공연', icon: 'music' },
+                                        { id: '3', time: '18:10', title: '특별 게스트', icon: 'mic' },
+                                        { id: '4', time: '18:40', title: 'Posta 공연', icon: 'flame' }
+                                    ];
 
-                            {/* Item 2: 19:00 (Right) */}
-                            <div className={`${classes.timelineItem} ${classes.rightAlign}`}>
-                                <div className={classes.dummyBox}></div>
-                                <div className={`${classes.centerIcon} ${classes.iconBlue}`}>
-                                    <Music size={16} />
-                                </div>
-                                <div className={classes.contentBox}>
-                                    <span className={classes.timeText}>17:30</span>
-                                    <div className={classes.itemTitle}>Wave 공연</div>
-                                </div>
-                            </div>
+                                return items.map((item, index) => {
+                                    const isLeft = index % 2 === 0;
+                                    const alignClass = isLeft ? classes.leftAlign : classes.rightAlign;
 
-                            {/* Item 3: 20:00 (Left) */}
-                            <div className={`${classes.timelineItem} ${classes.leftAlign}`}>
-                                <div className={classes.contentBox}>
-                                    <span className={classes.timeText}>18:30</span>
-                                    <div className={classes.itemTitle}>Intermission</div>
-                                </div>
-                                <div className={`${classes.centerIcon} ${classes.iconYellow}`}>
-                                    <Coffee size={16} />
-                                </div>
-                                <div className={classes.dummyBox}></div>
-                            </div>
+                                    let IconComp = Music;
+                                    let iconColorClass = classes.iconBlue;
+                                    if (item.icon === 'door') { IconComp = DoorOpen; iconColorClass = classes.iconGreen; }
+                                    else if (item.icon === 'coffee') { IconComp = Coffee; iconColorClass = classes.iconYellow; }
+                                    else if (item.icon === 'flame') { IconComp = Flame; iconColorClass = classes.iconPrimary; }
 
-                            {/* Item 4: 20:15 (Right) */}
-                            <div className={`${classes.timelineItem} ${classes.rightAlign}`}>
-                                <div className={classes.dummyBox}></div>
-                                <div className={`${classes.centerIcon} ${classes.iconPrimary}`}>
-                                    <Flame size={16} />
-                                </div>
-                                <div className={classes.contentBox}>
-                                    <span className={classes.timeText}>18:40</span>
-                                    <div className={classes.itemTitle}>Atempo 공연</div>
-                                </div>
-                            </div>
+                                    return (
+                                        <div key={item.id} className={`${classes.timelineItem} ${alignClass}`}>
+                                            {isLeft ? (
+                                                <>
+                                                    <div className={classes.contentBox}>
+                                                        <span className={classes.timeText}>{item.time}</span>
+                                                        <div className={classes.itemTitle}>{item.title}</div>
+                                                    </div>
+                                                    <div className={`${classes.centerIcon} ${iconColorClass}`}>
+                                                        <IconComp size={16} />
+                                                    </div>
+                                                    <div className={classes.dummyBox}></div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className={classes.dummyBox}></div>
+                                                    <div className={`${classes.centerIcon} ${iconColorClass}`}>
+                                                        <IconComp size={16} />
+                                                    </div>
+                                                    <div className={classes.contentBox}>
+                                                        <span className={classes.timeText}>{item.time}</span>
+                                                        <div className={classes.itemTitle}>{item.title}</div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </section>
                 </>
             )
             }
-        </div >
+        </div>
     );
 };
 
