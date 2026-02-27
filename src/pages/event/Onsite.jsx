@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { db, collection, addDoc } from "../../api/firebase";
+import { auth, db, collection, addDoc } from "../../api/firebase";
 import { useEvent } from "../../contexts/EventContext";
 import classes from "./Onsite.module.css";
 
@@ -26,10 +26,12 @@ const Onsite = () => {
     setIsSubmitting(true);
     try {
       const token = 'o_' + Math.random().toString(36).substr(2, 9);
+      const createdByUid = auth.currentUser?.uid || null;
       await addDoc(collection(db, "events", eventId, "reservations"), {
         name: name.trim(),
         phone: phone.trim(),
         token,
+        createdByUid,
         status: "onsite",
         depositConfirmed: false,
         createdAt: new Date().toISOString(),
@@ -59,7 +61,7 @@ const Onsite = () => {
         document.body.removeChild(textarea);
         alert("계좌번호가 복사되었습니다.");
       }
-    } catch (err) {
+    } catch {
       alert("복사에 실패했습니다.");
     }
   };

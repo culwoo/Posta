@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Image, DoorOpen, Music, Coffee, Flame } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEvent } from '../../contexts/EventContext';
-import { db, doc, onSnapshot, collection, query, where } from '../../api/firebase';
+import { functions, httpsCallable } from '../../api/firebase';
 import AudienceEntry from '../../components/AudienceEntry';
 import classes from './Home.module.css';
 
@@ -40,34 +40,42 @@ const Home = () => {
             setCheckinStatus(null);
             return;
         }
+        if (!user?.token) return;
 
-        let unsubscribe;
+        let cancelled = false;
+        const verifyTicketFn = httpsCallable(functions, "verifyTicket");
 
-        // In Posta, we prioritize checking by user token matching the event's reservations
-        // Since we are moving to event-scoped reservations, we query the event's reservation collection
-        // where `token` matches `user.token` OR `uid` matches `user.uid` (if we stored uid).
-        // Let's stick to `token` for now as legacy support, assuming user.token is still valid.
+        const refreshStatus = async () => {
+            try {
+                const response = await verifyTicketFn({
+                    token: user.token,
+                    eventId
+                });
+                const result = response.data || {};
+                if (cancelled) return;
 
-        if (user.token) {
-            const q = query(collection(db, 'events', eventId, 'reservations'), where('token', '==', user.token));
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                if (snapshot.empty) {
+                if (!result.success) {
                     setCheckinStatus(null);
                     return;
                 }
-                const data = snapshot.docs[0].data();
+
                 setCheckinStatus({
-                    checkedIn: Boolean(data.checkedIn),
-                    checkedInAt: data.checkedInAt || null
+                    checkedIn: Boolean(result.checkedIn),
+                    checkedInAt: result.checkedInAt || null
                 });
-            }, (err) => {
-                console.error("Token snapshot error:", err);
-            });
-        }
-        // Fallback or multiple event handling might be needed later.
+            } catch (err) {
+                if (!cancelled) {
+                    console.error("Ticket status refresh failed:", err);
+                }
+            }
+        };
+
+        refreshStatus();
+        const interval = setInterval(refreshStatus, 15000);
 
         return () => {
-            if (unsubscribe) unsubscribe();
+            cancelled = true;
+            clearInterval(interval);
         };
     }, [user?.isVerified, user?.token, authInitialized, eventId]);
 

@@ -20,6 +20,11 @@ import DashboardLayout from './pages/dashboard/DashboardLayout';
 import EventList from './pages/dashboard/EventList';
 import CreateEvent from './pages/dashboard/CreateEvent';
 import ManageEvent from './pages/dashboard/ManageEvent';
+import AudienceDashboard from './pages/dashboard/AudienceDashboard';
+import AnalyticsDashboard from './pages/dashboard/AnalyticsDashboard';
+import SettingsDashboard from './pages/dashboard/SettingsDashboard';
+import MoreDashboard from './pages/dashboard/MoreDashboard';
+import PremiumDashboard from './pages/dashboard/PremiumDashboard';
 
 // Helper Wrapper to access useParams
 const EventProviderWrapper = ({ children }) => {
@@ -42,6 +47,11 @@ function App() {
             <Route index element={<EventList />} />
             <Route path="create" element={<CreateEvent />} />
             <Route path="event/:eventId" element={<ManageEvent />} />
+            <Route path="audience" element={<AudienceDashboard />} />
+            <Route path="analytics" element={<AnalyticsDashboard />} />
+            <Route path="settings" element={<SettingsDashboard />} />
+            <Route path="premium" element={<PremiumDashboard />} />
+            <Route path="more" element={<MoreDashboard />} />
           </Route>
 
           {/* Posta Event Site Routes - /e/ prefix for clean, short URLs */}

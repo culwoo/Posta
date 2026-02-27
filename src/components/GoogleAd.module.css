@@ -1,0 +1,61 @@
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GoogleAd Component Styles
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* 실제 광고 컨테이너 */
+.adContainer {
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+/* 개발용 플레이스홀더 */
+.adPlaceholder {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1rem 0;
+    background: linear-gradient(135deg,
+            rgba(120, 119, 198, 0.06) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            rgba(120, 119, 198, 0.04) 100%);
+    border: 1px dashed rgba(120, 119, 198, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.adPlaceholder:hover {
+    opacity: 0.85;
+}
+
+.placeholderInner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0.75rem;
+}
+
+.placeholderIcon {
+    font-size: 1.2rem;
+    opacity: 0.5;
+}
+
+.placeholderText {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(120, 119, 198, 0.5);
+    text-transform: uppercase;
+}
+
+.placeholderSub {
+    font-size: 0.65rem;
+    color: rgba(107, 114, 128, 0.5);
+    letter-spacing: 0.5px;
+}

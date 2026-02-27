@@ -1,6 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     db,
+    functions,
+    httpsCallable,
     collection,
     query,
     orderBy,
@@ -8,18 +10,14 @@ import {
     updateDoc,
     deleteDoc,
     doc,
-    getDocs,
-    where,
-    setDoc
+    getDocs
 } from '../../api/firebase';
 import { Search } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useEvent } from '../../contexts/EventContext';
 import classes from './Admin.module.css';
 
 const Admin = () => {
     const { eventId, eventData } = useEvent();
-    const { user } = useAuth();
     const [reservations, setReservations] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [performers, setPerformers] = useState([]);
@@ -110,119 +108,26 @@ const Admin = () => {
             return;
         }
 
-        const expectedAmount = eventData?.payment?.ticketPrice ? Number(eventData.payment.ticketPrice) * reservation.ticketCount : 0;
-        const expectedName = reservation.name;
-
-        if (expectedAmount <= 0) {
-            alert("예상 입금액 정보가 없어 AI 확인을 진행할 수 없습니다.");
-            return;
-        }
-
         setVerifyingIds(prev => ({ ...prev, [reservation.id]: true }));
 
         try {
-            // 1. Fetch image and convert to base64
-            // Using proxy approach or direct fetch. Firebase storage URLs might be subject to CORS if not set, but let's try direct first.
-            const response = await fetch(reservation.receiptUrl);
-            const blob = await response.blob();
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
+            const verifyReceiptFn = httpsCallable(functions, "verifyDepositReceipt");
+            const response = await verifyReceiptFn({
+                eventId,
+                reservationId: reservation.id,
+                originUrl: window.location.origin
             });
-
-            // 2. Call Gemini API
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            if (!apiKey) {
-                alert("Gemini API 키가 설정되지 않았습니다.");
-                return;
-            }
-
-            const prompt = `
-            Analyze this bank deposit receipt/transfer screenshot.
-            Target Sender/Depositor Name: ${expectedName}
-            Target Amount: ${expectedAmount} won
-            
-            Look closely at the image for the Korean text indicating the sender's name (보낸사람, 예금주, 입금자, 받는사람 등) and the amount transferred (보낸금액, 이체금액, 거래금액, 출금액 등).
-            Note that the sender name may be partially masked (e.g., 김*수). If it matches the pattern of the Target Sender/Depositor Name, consider it a valid match.
-            The transfer amount should exactly match the Target Amount.
-            
-            Determine if the receipt shows a successful transfer matching BOTH the exact target amount AND the sender name.
-            Return ONLY a valid JSON object with these keys (no markdown, no backticks, just raw JSON):
-            {
-              "isValid": true or false,
-              "detectedName": "string of the sender name found, or null if not found",
-              "detectedAmount": "number of the transferred amount found, or null",
-              "reason": "very brief explanation in Korean"
-            }
-            `;
-
-            const models = ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-            let apiRes = null;
-            let data = null;
-
-            for (const model of models) {
-                try {
-                    apiRes = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-                                        { text: prompt }
-                                    ]
-                                }]
-                            })
-                        }
-                    );
-
-                    if (apiRes.ok) {
-                        data = await apiRes.json();
-                        if (data.candidates && data.candidates.length > 0) {
-                            console.log(`Successfully verified with ${model}`);
-                            break;
-                        }
-                    } else {
-                        console.warn(`Model ${model} failed with status ${apiRes.status}`);
-                    }
-                } catch (err) {
-                    console.error(`Error with model ${model}:`, err);
-                }
-            }
-
-            if (!data || !data.candidates || data.candidates.length === 0) {
-                throw new Error("All Gemini models failed to verify or hit rate limits.");
-            }
-
-            const text = data.candidates[0].content.parts[0].text || '';
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-            if (!jsonMatch) throw new Error("Could not parse JSON from AI response");
-
-            const result = JSON.parse(jsonMatch[0]);
+            const result = response.data || {};
 
             if (result.isValid) {
-                // Auto confirm
-                await updateDoc(doc(db, "events", eventId, "reservations", reservation.id), {
-                    depositConfirmed: true,
-                    depositConfirmedAt: new Date().toISOString(),
-                    aiVerified: true, // mark that this was AI verified
-                    aiLog: result,
-                    originUrl: window.location.origin
-                });
-
-                alert(`[AI 자동 승인 완료]\n이름: ${result.detectedName}\n금액: ${result.detectedAmount}원\n사유: ${result.reason}`);
+                alert(`[AI 자동 승인 완료]\n이름: ${result.detectedName || reservation.name}\n금액: ${result.detectedAmount || '-'}원\n사유: ${result.reason || '-'}`);
             } else {
-                alert(`[AI 검증 실패 - 수동 확인 필요]\n인식된 이름: ${result.detectedName || '없음'}\n인식된 금액: ${result.detectedAmount || '없음'}원\n사유: ${result.reason}\n\n영수증을 직접 확인해주세요.`);
+                alert(`[AI 검증 실패 - 수동 확인 필요]\n인식된 이름: ${result.detectedName || '없음'}\n인식된 금액: ${result.detectedAmount || '없음'}원\n사유: ${result.reason || '-'}\n\n영수증을 직접 확인해주세요.`);
             }
 
         } catch (err) {
             console.error("AI Verification failed:", err);
-            alert("AI 검증 중 오류가 발생했습니다. 수동으로 확인해주세요. (CORS 문제이거나 AI 서버 에러일 수 있습니다)");
+            alert("AI 검증 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             setVerifyingIds(prev => ({ ...prev, [reservation.id]: false }));
         }
@@ -234,6 +139,7 @@ const Admin = () => {
         if (!reservation) return;
         const newDeposit = !reservation.depositConfirmed;
         await updateDoc(doc(db, "events", eventId, "reservations", id), {
+            status: newDeposit ? "paid" : "reserved",
             depositConfirmed: newDeposit,
             depositConfirmedAt: newDeposit ? new Date().toISOString() : null,
             originUrl: window.location.origin

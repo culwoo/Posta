@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { db, collection, query, where, getDocs } from '../../api/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Calendar } from 'lucide-react';
+import { getManagedEvents } from '../../utils/dashboardData';
+import AdBanner from '../../components/AdBanner';
 
 // Firestore Timestamp → 문자열 변환
 const formatDate = (val) => {
@@ -21,11 +22,10 @@ const EventList = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             if (!user) return;
+            setLoading(true);
             try {
-                const q = query(collection(db, "events"), where("ownerId", "==", user.uid));
-                const snap = await getDocs(q);
-                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setEvents(list);
+                const eventsArray = await getManagedEvents(user.uid);
+                setEvents(eventsArray);
             } catch (e) {
                 console.error("Failed to fetch events:", e);
             } finally {
@@ -50,6 +50,8 @@ const EventList = () => {
                 </Link>
             </div>
 
+            <AdBanner placement="event-list" style={{ marginBottom: '1rem' }} />
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {events.length === 0 ? (
                     <p>생성된 이벤트가 없습니다.</p>
@@ -61,13 +63,22 @@ const EventList = () => {
                                 border: '1px solid #eee', boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                                 transition: 'transform 0.2s'
                             }}>
-                                <h3 style={{ margin: '0 0 0.5rem 0' }}>{event.title || '제목 없음'}</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                    <h3 style={{ margin: 0 }}>{event.title || '제목 없음'}</h3>
+                                    <span style={{
+                                        fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px',
+                                        backgroundColor: event.userRole === 'organizer' ? '#d04c31' : '#4b5563',
+                                        color: '#fff', fontWeight: 'bold'
+                                    }}>
+                                        {event.userRole === 'organizer' ? '관리자' : (event.userRole === 'performer' ? '공연진' : '참여자')}
+                                    </span>
+                                </div>
                                 <p style={{ fontSize: '0.9rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <Calendar size={14} />
                                     {formatDate(event.date)}
                                 </p>
                                 <p style={{ fontSize: '0.8rem', color: '#0066cc', marginTop: '1rem', wordBreak: 'break-all' }}>
-                                    🌐 posta.com/e/{event.id}
+                                    🌐 posta.systems/e/{event.id}
                                 </p>
                             </div>
                         </Link>

@@ -1,19 +1,72 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Public read for all files
-    match /{allPaths=**} {
-      allow read: if true;
-    }
-    
-    // Allow authenticated users to upload event posters
-    match /events/{eventId}/{allPaths=**} {
-      allow write: if request.auth != null;
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Allow ANY user to upload receipt images (no auth required)
-    match /receipts/{allPaths=**} {
-      allow read, write: if true;
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.token.email in [
+          "4242fire@gmail.com",
+          "sseeooyyuunn@naver.com",
+          "mides3912@gmail.com"
+        ];
+    }
+
+    function isEventOwner(eventId) {
+      return signedIn() &&
+        firestore.get(/databases/(default)/documents/events/$(eventId)).data.ownerId == request.auth.uid;
+    }
+
+    function isEventStaff(eventId) {
+      return signedIn() &&
+        firestore.exists(/databases/(default)/documents/events/$(eventId)/performers/$(request.auth.uid));
+    }
+
+    function isEventManager(eventId) {
+      return isAdmin() || isEventOwner(eventId) || isEventStaff(eventId);
+    }
+
+    match /events/{eventId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isEventManager(eventId);
+    }
+
+    // New receipt path: receipts/{eventId}/{uploaderUid}/{fileName}
+    match /receipts/{eventId}/{uploaderUid}/{fileName} {
+      allow write: if signedIn() &&
+        request.auth.uid == uploaderUid &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+
+      allow read: if signedIn() &&
+        (request.auth.uid == uploaderUid || isEventManager(eventId));
+    }
+
+    // Legacy receipt path support: receipts/{eventId}/{fileName}
+    match /receipts/{eventId}/{fileName} {
+      allow read: if signedIn() && isEventManager(eventId);
+      allow write: if false;
+    }
+
+    // Profile image path: users/{uid}/profile/{fileName}
+    match /users/{uid}/profile/{fileName} {
+      allow write: if signedIn() &&
+        request.auth.uid == uid &&
+        (
+          request.resource == null ||
+          (
+            request.resource.size < 5 * 1024 * 1024 &&
+            request.resource.contentType.matches('image/.*')
+          )
+        );
+
+      allow read: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

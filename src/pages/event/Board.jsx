@@ -6,6 +6,8 @@ import { Plus } from 'lucide-react';
 import StickyNote from '../../components/StickyNote';
 import WriteModal from '../../components/WriteModal';
 import PostModal from '../../components/PostModal';
+import GoogleAd from '../../components/GoogleAd';
+import { AD_SLOTS } from '../../config/adsense';
 import classes from './Board.module.css';
 
 const Board = () => {
@@ -82,6 +84,13 @@ const Board = () => {
 
                 <p>우리들의 이야기를 자유롭게 남겨주세요!</p>
             </div>
+
+            <GoogleAd
+                slotId={AD_SLOTS.EVENT_BOARD.slotId}
+                format={AD_SLOTS.EVENT_BOARD.format}
+                label={AD_SLOTS.EVENT_BOARD.label}
+                style={{ margin: '0 0 0.5rem' }}
+            />
 
             <div className={classes.postsContainer}>
                 {filteredPosts.map(post => (

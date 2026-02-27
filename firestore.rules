@@ -1,46 +1,114 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection (Dashboard Organizers)
-    match /users/{userId} {
-      allow read: if true; 
-      allow write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Events collection
-    match /events/{eventId} {
-      // Anyone can read event info
-      allow read: if true;
-      // Only the owner can update/delete
-      // Note: allow create for authenticated users to create a new event
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      
-      // Subcollections
-      match /reservations/{reservationId} {
-        // Guests can create reservations (even anonymously)
-        allow create: if true;
-        // Guests can read/update their own, Owner can read/update all
-        allow read, update: if true; // Permissive read for anonymous verifyToken, needs strict rules later
-        allow delete: if request.auth != null; 
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.token.email in [
+          "4242fire@gmail.com",
+          "sseeooyyuunn@naver.com",
+          "mides3912@gmail.com"
+        ];
+    }
+
+    function eventDoc(eventId) {
+      return get(/databases/$(database)/documents/events/$(eventId));
+    }
+
+    function isEventOwner(eventId) {
+      return signedIn() && eventDoc(eventId).data.ownerId == request.auth.uid;
+    }
+
+    function isEventStaff(eventId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/events/$(eventId)/performers/$(request.auth.uid));
+    }
+
+    function isEventManager(eventId) {
+      return isAdmin() || isEventOwner(eventId) || isEventStaff(eventId);
+    }
+
+    function canReadPost(eventId, postId) {
+      return exists(/databases/$(database)/documents/events/$(eventId)/posts/$(postId)) && (
+        get(/databases/$(database)/documents/events/$(eventId)/posts/$(postId)).data.isPublic == true ||
+        (
+          signedIn() && (
+            get(/databases/$(database)/documents/events/$(eventId)/posts/$(postId)).data.fromUid == request.auth.uid ||
+            (
+              get(/databases/$(database)/documents/events/$(eventId)/posts/$(postId)).data.visibleTo is list &&
+              request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)/posts/$(postId)).data.visibleTo
+            ) ||
+            isEventManager(eventId)
+          )
+        )
+      );
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+
+      // Allow owner access to user-scoped subcollections (e.g. users/{uid}/myEvents/{eventId})
+      match /{document=**} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
       }
-      
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isEventManager(eventId);
+      allow delete: if isEventOwner(eventId);
+
+      match /reservations/{reservationId} {
+        allow create: if signedIn() &&
+          request.resource.data.createdByUid == request.auth.uid;
+
+        allow read: if isEventManager(eventId) ||
+          (signedIn() && resource.data.createdByUid == request.auth.uid);
+
+        allow update: if isEventManager(eventId) ||
+          (signedIn() && resource.data.createdByUid == request.auth.uid);
+
+        allow delete: if isEventManager(eventId);
+      }
+
       match /posts/{postId} {
-        // Anyone can read and create posts (guestbook)
-        allow read, create: if true;
-        // Updating/deleting
-        allow update, delete: if request.auth != null;
-        
+        allow read: if resource.data.isPublic == true ||
+          (
+            signedIn() && (
+              resource.data.fromUid == request.auth.uid ||
+              (resource.data.visibleTo is list && request.auth.uid in resource.data.visibleTo) ||
+              isEventManager(eventId)
+            )
+          );
+
+        allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+
+        allow update, delete: if signedIn() &&
+          (resource.data.fromUid == request.auth.uid || isEventManager(eventId));
+
         match /comments/{commentId} {
-          allow read, create: if true;
-          allow update, delete: if request.auth != null;
+          allow read: if canReadPost(eventId, postId);
+
+          allow create: if signedIn() &&
+            canReadPost(eventId, postId) &&
+            request.resource.data.authorUid == request.auth.uid;
+
+          allow update, delete: if signedIn() &&
+            (resource.data.authorUid == request.auth.uid || isEventManager(eventId));
         }
       }
-      
+
       match /performers/{performerId} {
-        // Performers list
-        allow read: if true;
-        allow write: if request.auth != null;
+        allow read: if signedIn();
+
+        allow create, update: if signedIn() &&
+          (request.auth.uid == performerId || isEventManager(eventId));
+
+        allow delete: if isEventManager(eventId);
       }
     }
   }

@@ -1,7 +1,9 @@
-﻿/**
+/**
  * Atempo Cloud Functions
  *
  * 1. sendTicketSMS: Sends ticket email when reservation status changes to paid
+ * 2. verifyDepositReceipt: Verifies transfer receipt image with Gemini and confirms deposit
+ * 3. extractPosterColors: Extracts theme colors from poster image with Gemini
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -16,11 +18,12 @@ const nodemailer = require("nodemailer");
 initializeApp();
 const db = getFirestore();
 
-// Email config (Secrets)
+// Email/Gemini config (Secrets)
 const GMAIL_USER = defineSecret("GMAIL_USER");
 const GMAIL_APP_PASSWORD = defineSecret("GMAIL_APP_PASSWORD");
 const EMAIL_FROM_NAME = defineSecret("EMAIL_FROM_NAME");
 const PUBLIC_BASE_URL = defineSecret("PUBLIC_BASE_URL");
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
 const ADMIN_EMAILS = [
     "4242fire@gmail.com",
@@ -30,7 +33,33 @@ const ADMIN_EMAILS = [
 
 const isAdminEmail = (email) => {
     if (!email) return false;
-    return ADMIN_EMAILS.includes(email.toLowerCase());
+    return ADMIN_EMAILS.includes(String(email).toLowerCase());
+};
+
+const normalizeEmailAddress = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const bracketMatch = raw.match(/<([^>]+)>/);
+    const candidate = bracketMatch ? bracketMatch[1] : raw;
+    return candidate.replace(/^mailto:/i, "").trim().toLowerCase();
+};
+
+const resolveTicketBaseUrl = (originUrl, publicBaseUrl) => {
+    const origin = String(originUrl || "").trim();
+    const fallback = String(publicBaseUrl || "").trim();
+
+    const isLocalhost = (urlString) => {
+        try {
+            const parsed = new URL(urlString);
+            return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+        } catch (err) {
+            return false;
+        }
+    };
+
+    if (origin && !isLocalhost(origin)) return origin;
+    if (fallback) return fallback;
+    return "https://melodicapp.web.app";
 };
 
 const requireAdmin = (request) => {
@@ -44,7 +73,7 @@ const requireAdmin = (request) => {
 };
 
 const getMailTransport = () => {
-    const user = (GMAIL_USER.value() || "").trim();
+    const user = normalizeEmailAddress(GMAIL_USER.value());
     const pass = (GMAIL_APP_PASSWORD.value() || "").trim().replace(/\s+/g, "");
     if (!user || !pass) {
         throw new Error("Missing Gmail secrets. Set GMAIL_USER and GMAIL_APP_PASSWORD.");
@@ -53,6 +82,101 @@ const getMailTransport = () => {
         service: "gmail",
         auth: { user, pass }
     });
+};
+
+const getEventDoc = async (eventId) => {
+    const eventDoc = await db.collection("events").doc(eventId).get();
+    if (!eventDoc.exists) {
+        throw new HttpsError("not-found", "Event not found.");
+    }
+    return eventDoc;
+};
+
+const isEventStaff = async (eventId, uid) => {
+    if (!uid) return false;
+    const performerSnap = await db
+        .collection("events")
+        .doc(eventId)
+        .collection("performers")
+        .doc(uid)
+        .get();
+    return performerSnap.exists;
+};
+
+const isEventManager = async (request, eventId, eventData = null) => {
+    if (!request.auth?.uid) return false;
+
+    const uid = request.auth.uid;
+    const email = request.auth.token?.email || "";
+    if (isAdminEmail(email)) return true;
+
+    const data = eventData || (await getEventDoc(eventId)).data() || {};
+    if (data.ownerId === uid) return true;
+
+    return isEventStaff(eventId, uid);
+};
+
+const extractJsonObject = (text) => {
+    const raw = String(text || "");
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("Could not parse JSON from Gemini response.");
+    }
+    return JSON.parse(jsonMatch[0]);
+};
+
+const callGeminiWithFallback = async ({ base64, prompt, models }) => {
+    const apiKey = (GEMINI_API_KEY.value() || "").trim();
+    if (!apiKey) {
+        throw new Error("Missing GEMINI_API_KEY secret.");
+    }
+
+    let lastError = "";
+
+    for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                { inlineData: { mimeType: "image/jpeg", data: base64 } },
+                                { text: prompt }
+                            ]
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                lastError = `${model}: ${response.status} ${errorText}`;
+                console.warn(`[Gemini] ${lastError}`);
+                continue;
+            }
+
+            const data = await response.json();
+            if (data?.candidates?.length) {
+                return data;
+            }
+
+            lastError = `${model}: empty candidates`;
+            console.warn(`[Gemini] ${lastError}`);
+        } catch (err) {
+            lastError = `${model}: ${err.message || String(err)}`;
+            console.warn(`[Gemini] ${lastError}`);
+        }
+    }
+
+    throw new Error(`All Gemini models failed. ${lastError}`.trim());
+};
+
+const normalizeHex = (value, fallback) => {
+    const raw = String(value || "").trim();
+    return /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw : fallback;
 };
 
 /**
@@ -92,7 +216,7 @@ exports.sendTicketSMS = onDocumentUpdated(
             let eventDate = "";
             let eventTime = "";
             let eventLocation = "";
-            let ticketCount = afterData.ticketCount || 1;
+            const ticketCount = afterData.ticketCount || 1;
             try {
                 const eventDoc = await db.collection("events").doc(eventId).get();
                 if (eventDoc.exists) {
@@ -114,7 +238,7 @@ exports.sendTicketSMS = onDocumentUpdated(
             });
 
             // Ticket link
-            const baseUrl = afterData.originUrl || PUBLIC_BASE_URL.value() || "https://melodicapp.web.app";
+            const baseUrl = resolveTicketBaseUrl(afterData.originUrl, PUBLIC_BASE_URL.value());
             const ticketUrl = `${baseUrl.replace(/\/+$/, "")}/e/${eventId}?auth=${token}`;
 
             const subject = `[${eventTitle}] 예매가 확정되었습니다! 모바일 티켓을 확인하세요.`;
@@ -133,7 +257,7 @@ exports.sendTicketSMS = onDocumentUpdated(
                         <h3 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; font-size: 15px;">🎟 공연/행사 정보</h3>
                         <p style="margin: 8px 0;"><strong>공연명:</strong> ${eventTitle}</p>
                         <p style="margin: 8px 0;"><strong>일시:</strong> ${eventDate} ${eventTime}</p>
-                        <p style="margin: 8px 0;"><strong>장소:</strong> ${eventLocation || '정보 없음'}</p>
+                        <p style="margin: 8px 0;"><strong>장소:</strong> ${eventLocation || "정보 없음"}</p>
                         <p style="margin: 8px 0;"><strong>예매 매수:</strong> ${ticketCount}장</p>
                     </div>
                     
@@ -146,7 +270,7 @@ exports.sendTicketSMS = onDocumentUpdated(
 
             try {
                 const fromName = (EMAIL_FROM_NAME.value() || "POSTA Ticketing").trim();
-                const fromUser = (GMAIL_USER.value() || "").trim();
+                const fromUser = normalizeEmailAddress(GMAIL_USER.value());
                 const transporter = getMailTransport();
 
                 console.log(`[Email send] ${name} (${email}) - URL: ${ticketUrl}`);
@@ -169,7 +293,10 @@ exports.sendTicketSMS = onDocumentUpdated(
 
                 await event.data.after.ref.update({
                     emailStatus: "error",
-                    emailError: error.message || JSON.stringify(error)
+                    emailError:
+                        error?.code === "EAUTH"
+                            ? "Gmail 인증 실패(EAUTH): GMAIL_USER/GMAIL_APP_PASSWORD를 확인하세요."
+                            : (error.message || JSON.stringify(error))
                 });
             }
         }
@@ -178,7 +305,225 @@ exports.sendTicketSMS = onDocumentUpdated(
     }
 );
 
-exports.deletePerformer = onCall({ region: "asia-northeast3" }, async (request) => {
+exports.verifyDepositReceipt = onCall(
+    {
+        region: "asia-northeast3",
+        invoker: "public",
+        secrets: [GEMINI_API_KEY]
+    },
+    async (request) => {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Login required.");
+        }
+
+        const eventId = String(request.data?.eventId || "").trim();
+        const reservationId = String(request.data?.reservationId || "").trim();
+        const reservationToken = String(request.data?.reservationToken || "").trim();
+        const originUrl = String(request.data?.originUrl || "").trim();
+
+        if (!eventId || !reservationId) {
+            throw new HttpsError("invalid-argument", "eventId and reservationId are required.");
+        }
+
+        const eventDoc = await getEventDoc(eventId);
+        const eventData = eventDoc.data() || {};
+
+        const reservationRef = db
+            .collection("events")
+            .doc(eventId)
+            .collection("reservations")
+            .doc(reservationId);
+        const reservationSnap = await reservationRef.get();
+        if (!reservationSnap.exists) {
+            throw new HttpsError("not-found", "Reservation not found.");
+        }
+        const reservation = reservationSnap.data() || {};
+
+        const manager = await isEventManager(request, eventId, eventData);
+        const ownReservation =
+            Boolean(reservation.createdByUid) && reservation.createdByUid === request.auth.uid;
+        const tokenMatched =
+            !manager &&
+            Boolean(reservationToken) &&
+            Boolean(reservation.token) &&
+            reservation.token === reservationToken;
+
+        if (!manager && !ownReservation && !tokenMatched) {
+            throw new HttpsError("permission-denied", "You can verify only your own reservation.");
+        }
+
+        if (reservation.depositConfirmed === true) {
+            return {
+                success: true,
+                isValid: true,
+                alreadyConfirmed: true,
+                detectedName: reservation.name || null,
+                detectedAmount:
+                    Number(reservation.ticketCount || 1) *
+                    Number(eventData?.payment?.ticketPrice || 0),
+                reason: "이미 입금 확인된 예약입니다."
+            };
+        }
+
+        const receiptUrl = String(reservation.receiptUrl || "").trim();
+        if (!receiptUrl) {
+            throw new HttpsError("failed-precondition", "Receipt image is required.");
+        }
+
+        const expectedAmount =
+            Number(eventData?.payment?.ticketPrice || 0) * Number(reservation.ticketCount || 1);
+        if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+            throw new HttpsError("failed-precondition", "Invalid expected amount.");
+        }
+
+        const expectedName = String(reservation.name || "").trim();
+        if (!expectedName) {
+            throw new HttpsError("failed-precondition", "Reservation name is missing.");
+        }
+
+        await reservationRef.update({
+            aiAttemptedAt: new Date().toISOString()
+        });
+
+        const imageResponse = await fetch(receiptUrl);
+        if (!imageResponse.ok) {
+            throw new HttpsError("invalid-argument", "Failed to fetch receipt image.");
+        }
+
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const base64 = imageBuffer.toString("base64");
+
+        const prompt = `
+Analyze this bank deposit receipt/transfer screenshot.
+Target Sender/Depositor Name: ${expectedName}
+Target Amount: ${expectedAmount} won
+
+Look for sender name (보낸사람, 예금주, 입금자, 받는사람 등) and transferred amount (보낸금액, 이체금액, 거래금액, 출금액 등).
+Sender name can be partially masked (e.g., 김*수). If pattern matches target name, treat as valid.
+Transfer amount must exactly match target amount.
+
+Return ONLY valid JSON:
+{
+  "isValid": true or false,
+  "detectedName": "sender name or null",
+  "detectedAmount": "number or null",
+  "reason": "very brief explanation in Korean"
+}
+        `.trim();
+
+        const geminiData = await callGeminiWithFallback({
+            base64,
+            prompt,
+            models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+        });
+
+        const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const parsed = extractJsonObject(text);
+        const result = {
+            isValid: Boolean(parsed.isValid),
+            detectedName: parsed.detectedName || null,
+            detectedAmount:
+                parsed.detectedAmount === null || parsed.detectedAmount === undefined
+                    ? null
+                    : Number(parsed.detectedAmount),
+            reason: String(parsed.reason || "")
+        };
+
+        if (result.isValid) {
+            await reservationRef.update({
+                status: "paid",
+                depositConfirmed: true,
+                depositConfirmedAt: new Date().toISOString(),
+                aiVerified: true,
+                aiLog: result,
+                originUrl: originUrl || null
+            });
+        } else {
+            await reservationRef.update({
+                aiVerified: false,
+                aiLog: result
+            });
+        }
+
+        return {
+            success: true,
+            ...result
+        };
+    }
+);
+
+exports.extractPosterColors = onCall(
+    {
+        region: "asia-northeast3",
+        invoker: "public",
+        secrets: [GEMINI_API_KEY]
+    },
+    async (request) => {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Login required.");
+        }
+
+        const eventId = String(request.data?.eventId || "").trim();
+        const imageBase64 = String(request.data?.imageBase64 || "").trim();
+
+        if (!eventId || !imageBase64) {
+            throw new HttpsError("invalid-argument", "eventId and imageBase64 are required.");
+        }
+
+        if (imageBase64.length > 8_000_000) {
+            throw new HttpsError("invalid-argument", "Image is too large.");
+        }
+
+        const eventDoc = await getEventDoc(eventId);
+        const manager = await isEventManager(request, eventId, eventDoc.data() || {});
+        if (!manager) {
+            throw new HttpsError("permission-denied", "Event managers only.");
+        }
+
+        const prompt = `
+Analyze this poster image and extract a cohesive 5-color web theme palette.
+Return ONLY a JSON object:
+{
+  "primary": "#RRGGBB",
+  "secondary": "#RRGGBB",
+  "bgPrimary": "#RRGGBB",
+  "bgSecondary": "#RRGGBB",
+  "textPrimary": "#RRGGBB"
+}
+
+Constraints:
+1. primary: vibrant but comfortable for UI.
+2. bgPrimary: suitable for app background.
+3. textPrimary: high contrast with bgPrimary.
+4. secondary: supporting accent.
+5. Hex only.
+        `.trim();
+
+        const geminiData = await callGeminiWithFallback({
+            base64: imageBase64,
+            prompt,
+            models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+        });
+
+        const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const parsed = extractJsonObject(text);
+
+        const colors = {
+            primary: normalizeHex(parsed.primary, "#d04c31"),
+            secondary: normalizeHex(parsed.secondary, "#f6c458"),
+            bgPrimary: normalizeHex(parsed.bgPrimary, "#131011"),
+            bgSecondary: normalizeHex(parsed.bgSecondary, "#3e3a39"),
+            textPrimary: normalizeHex(parsed.textPrimary, "#efefef")
+        };
+
+        return {
+            success: true,
+            colors
+        };
+    }
+);
+
+exports.deletePerformer = onCall({ region: "asia-northeast3", invoker: "public" }, async (request) => {
     requireAdmin(request);
 
     const uid = (request.data?.uid || "").trim();
@@ -193,7 +538,7 @@ exports.deletePerformer = onCall({ region: "asia-northeast3" }, async (request) 
     return { success: true };
 });
 
-exports.adminResetPassword = onCall({ region: "asia-northeast3" }, async (request) => {
+exports.adminResetPassword = onCall({ region: "asia-northeast3", invoker: "public" }, async (request) => {
     requireAdmin(request);
 
     const uid = (request.data?.uid || "").trim();
@@ -216,7 +561,7 @@ exports.adminResetPassword = onCall({ region: "asia-northeast3" }, async (reques
     }
 });
 
-exports.verifyTicket = onCall({ region: "asia-northeast3" }, async (request) => {
+exports.verifyTicket = onCall({ region: "asia-northeast3", invoker: "public" }, async (request) => {
     const rawToken = request.data?.token || "";
     const token = String(rawToken).trim();
     const eventId = String(request.data?.eventId || "").trim();

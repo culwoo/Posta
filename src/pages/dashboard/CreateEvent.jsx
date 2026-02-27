@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, doc, getDoc, setDoc } from '../../api/firebase';
+import { db, doc, getDoc, writeBatch } from '../../api/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
 const CreateEvent = () => {
@@ -33,16 +33,54 @@ const CreateEvent = () => {
                 return;
             }
 
+            let defaultPayment = {
+                bankName: '',
+                accountNumber: '',
+                accountHolder: '',
+                ticketPrice: '',
+                onsitePrice: '',
+                isFreeEvent: false
+            };
+
+            try {
+                const userSnap = await getDoc(doc(db, "users", user.uid));
+                if (userSnap.exists()) {
+                    const savedDefaults = userSnap.data()?.settings?.defaults?.payment || {};
+                    defaultPayment = {
+                        bankName: savedDefaults.bankName || '',
+                        accountNumber: savedDefaults.accountNumber || '',
+                        accountHolder: savedDefaults.accountHolder || '',
+                        ticketPrice: savedDefaults.ticketPrice || '',
+                        onsitePrice: savedDefaults.onsitePrice || '',
+                        isFreeEvent: false
+                    };
+                }
+            } catch (defaultsError) {
+                console.warn("Failed to load user payment defaults:", defaultsError);
+            }
+
+            const batch = writeBatch(db);
+
             // Create minimal event doc
-            await setDoc(eventRef, {
+            batch.set(eventRef, {
                 title,
                 date,
                 location,
                 ownerId: user.uid,
                 createdAt: new Date().toISOString(),
                 isReservationClosed: false,
+                payment: defaultPayment,
                 theme: { primary: '#000000', secondary: '#ffffff' } // Default theme
             });
+
+            // Auto mapping: Add to user's myEvents subcollection
+            batch.set(doc(db, "users", user.uid, "myEvents", finalSlug), {
+                eventId: finalSlug,
+                role: 'organizer',
+                createdAt: new Date().toISOString()
+            });
+
+            await batch.commit();
 
             // Redirect to dashboard after creation
             alert(`이벤트 "${title}" 생성 완료!\n주소: /e/${finalSlug}`);

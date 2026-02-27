@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
 import { generateNickname } from '../utils/nickname';
 import {
     auth, db,
-    onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signInAnonymously,
-    doc, setDoc, functions, httpsCallable
+    onAuthStateChanged, signOut as firebaseSignOut, signInAnonymously, updateProfile,
+    doc, setDoc, functions, httpsCallable, getDoc,
+    GoogleAuthProvider, signInWithPopup
 } from '../api/firebase';
 import { isAdminEmail } from '../config/admins';
 
@@ -12,59 +13,93 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+// Helper to extract premium info from Firestore user data
+const extractPremiumInfo = (userData) => {
+    if (!userData) return { tier: 'free', isPremium: false };
+    return {
+        tier: userData.tier || 'free',
+        isPremium: userData.isPremium === true || userData.tier === 'premium' || userData.tier === 'pro'
+    };
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null); // { name: string, role: 'performer'|'audience', uid?: string }
     const [loading, setLoading] = useState(true);
     const [authInitialized, setAuthInitialized] = useState(false);
     const location = useLocation();
 
-    // Helper to get current Event ID from URL
-    const getEventId = () => {
+    // Helper to get current Event ID from URL - memoized to prevent unnecessary re-renders
+    const currentEventId = useMemo(() => {
         const match = matchPath("/e/:eventId/*", location.pathname);
         return match?.params?.eventId || null;
-    };
+    }, [location.pathname]);
 
-    const currentEventId = getEventId();
-
-    // 1. Check for Firebase User
+    // Keep a ref to currentEventId for use in the onAuthStateChanged callback
+    const currentEventIdRef = useRef(currentEventId);
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        currentEventIdRef.current = currentEventId;
+    }, [currentEventId]);
+
+    // 1. Check for Firebase User - subscribe ONCE, use ref for eventId
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            const eventId = currentEventIdRef.current;
             if (firebaseUser) {
                 if (firebaseUser.isAnonymous) {
                     // Anonymous User (Audience)
-                    if (currentEventId) {
-                        const storageKey = `posta_guest_${currentEventId}`;
+                    if (eventId) {
+                        const storageKey = `posta_guest_${eventId}`;
                         const storedAudience = localStorage.getItem(storageKey);
                         if (storedAudience) {
                             const parsed = JSON.parse(storedAudience);
-                            setUser({ ...parsed, uid: firebaseUser.uid }); // Ensure UID is from auth
+                            setUser(prev => {
+                                // Skip update if nothing changed
+                                if (prev?.uid === firebaseUser.uid && prev?.role === parsed.role && prev?.name === parsed.name) return prev;
+                                return { ...parsed, uid: firebaseUser.uid };
+                            });
                         } else {
-                            setUser(null);
+                            setUser(prev => prev === null ? prev : null);
                         }
                     } else {
                         // Not in an event page, or no guest data
-                        // Maybe user is browsing dashboard as anon?
-                        setUser(null);
+                        setUser(prev => prev === null ? prev : null);
                     }
                     setLoading(false);
                     setAuthInitialized(true);
                 } else {
-                    // Performer/Organizer (Email/Password)
+                    // Performer/Organizer (Google Auth)
                     let ticketData = null;
-                    if (currentEventId) {
-                        const storedAudience = localStorage.getItem(`posta_guest_${currentEventId}`);
+                    if (eventId) {
+                        const storedAudience = localStorage.getItem(`posta_guest_${eventId}`);
                         if (storedAudience) {
                             ticketData = JSON.parse(storedAudience);
                         }
                     }
 
-                    setUser({
+                    // Read premium tier from Firestore
+                    let premiumInfo = { tier: 'free', isPremium: false };
+                    try {
+                        const userSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
+                        if (userSnap.exists()) {
+                            premiumInfo = extractPremiumInfo(userSnap.data());
+                        }
+                    } catch (err) {
+                        console.warn('Failed to read premium info:', err);
+                    }
+
+                    const newUser = {
                         uid: firebaseUser.uid,
                         name: firebaseUser.displayName || 'Creator',
                         email: firebaseUser.email,
                         ...ticketData, // merge ticket info (isVerified, role as audience, etc.) if exists
                         role: ticketData ? 'audience' : 'organizer', // prioritize ticket view if testing
-                        isAdmin: isAdminEmail(firebaseUser.email)
+                        isAdmin: isAdminEmail(firebaseUser.email),
+                        tier: premiumInfo.tier,
+                        isPremium: premiumInfo.isPremium
+                    };
+                    setUser(prev => {
+                        if (prev?.uid === newUser.uid && prev?.role === newUser.role && prev?.email === newUser.email && prev?.tier === newUser.tier) return prev;
+                        return newUser;
                     });
                     setLoading(false);
                     setAuthInitialized(true);
@@ -78,103 +113,124 @@ export const AuthProvider = ({ children }) => {
                     setLoading(false);
                     setAuthInitialized(true);
                 });
-                setUser(null);
+                setUser(prev => prev === null ? prev : null);
             }
         });
 
         return unsubscribe;
-    }, [currentEventId]); // Re-run when eventId changes to load correct guest profile
+    }, []); // Subscribe only ONCE - use ref for eventId
 
-    const performerLogin = async (email, password) => {
-        const res = await signInWithEmailAndPassword(auth, email, password);
+    // Re-evaluate user when eventId changes (e.g., navigating between events)
+    useEffect(() => {
+        if (!authInitialized) return;
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) return;
 
-        // If logging in via an event-specific URL, automatically join as performer for this event
-        if (currentEventId) {
-            try {
-                // Determine name (from auth profile or default)
-                let name = res.user.displayName || "공연진";
+        const reevaluate = async () => {
+            if (firebaseUser.isAnonymous) {
+                if (currentEventId) {
+                    const storageKey = `posta_guest_${currentEventId}`;
+                    const storedAudience = localStorage.getItem(storageKey);
+                    if (storedAudience) {
+                        const parsed = JSON.parse(storedAudience);
+                        setUser(prev => {
+                            if (prev?.uid === firebaseUser.uid && prev?.role === parsed.role && prev?.name === parsed.name) return prev;
+                            return { ...parsed, uid: firebaseUser.uid };
+                        });
+                    } else {
+                        setUser(prev => prev === null ? prev : null);
+                    }
+                } else {
+                    setUser(prev => prev === null ? prev : null);
+                }
+            } else {
+                let ticketData = null;
+                if (currentEventId) {
+                    const storedAudience = localStorage.getItem(`posta_guest_${currentEventId}`);
+                    if (storedAudience) {
+                        ticketData = JSON.parse(storedAudience);
+                    }
+                }
 
-                await setDoc(doc(db, "events", currentEventId, "performers", res.user.uid), {
-                    uid: res.user.uid,
-                    name: name,
-                    email: email,
-                    role: 'performer',
-                    createdAt: new Date().toISOString()
-                }, { merge: true }); // merge to not overwrite joining date if they were already there
-            } catch (err) {
-                console.error("Failed to add performer to event specific list", err);
+                // Read premium tier from Firestore
+                let premiumInfo = { tier: 'free', isPremium: false };
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    if (userSnap.exists()) {
+                        premiumInfo = extractPremiumInfo(userSnap.data());
+                    }
+                } catch (err) {
+                    console.warn('Failed to read premium info on re-eval:', err);
+                }
+
+                const newUser = {
+                    uid: firebaseUser.uid,
+                    name: firebaseUser.displayName || 'Creator',
+                    email: firebaseUser.email,
+                    ...ticketData,
+                    role: ticketData ? 'audience' : 'organizer',
+                    isAdmin: isAdminEmail(firebaseUser.email),
+                    tier: premiumInfo.tier,
+                    isPremium: premiumInfo.isPremium
+                };
+                setUser(prev => {
+                    if (prev?.uid === newUser.uid && prev?.role === newUser.role && prev?.email === newUser.email && prev?.tier === newUser.tier) return prev;
+                    return newUser;
+                });
             }
-        }
+        };
 
-        return res;
-    };
+        reevaluate();
+    }, [currentEventId, authInitialized]);
 
-    const performerSignup = async (email, password, name) => {
+    const performerLogin = async () => {
+        const provider = new GoogleAuthProvider();
+
         try {
-            const res = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(res.user, { displayName: name });
+            const res = await signInWithPopup(auth, provider);
 
             // Save Profile to Global users
             await setDoc(doc(db, "users", res.user.uid), {
                 uid: res.user.uid,
-                name: name,
-                email: email,
-                role: 'performer',
+                name: res.user.displayName || "관리자",
+                email: res.user.email,
+                role: 'organizer', // Global role
                 createdAt: new Date().toISOString()
-            });
+            }, { merge: true });
 
-            // Save Profile to Event Specific performers
+            // If logging in via an event-specific URL, automatically join as performer for this event
             if (currentEventId) {
-                await setDoc(doc(db, "events", currentEventId, "performers", res.user.uid), {
-                    uid: res.user.uid,
-                    name: name,
-                    email: email,
-                    role: 'performer',
-                    createdAt: new Date().toISOString()
-                });
+                try {
+                    let name = res.user.displayName || "공연진";
+
+                    // event-specific performers group
+                    await setDoc(doc(db, "events", currentEventId, "performers", res.user.uid), {
+                        uid: res.user.uid,
+                        name: name,
+                        email: res.user.email,
+                        role: 'performer',
+                        createdAt: new Date().toISOString()
+                    }, { merge: true });
+
+                    // user-specific role mapping
+                    await setDoc(doc(db, "users", res.user.uid, "myEvents", currentEventId), {
+                        eventId: currentEventId,
+                        role: 'performer',
+                        createdAt: new Date().toISOString()
+                    }, { merge: true });
+
+                } catch (err) {
+                    console.error("Failed to add performer to event specific list", err);
+                }
             }
 
-            setUser({
-                uid: res.user.uid,
-                name: name,
-                email: res.user.email,
-                role: 'performer',
-                isAdmin: isAdminEmail(res.user.email)
-            });
+            return res;
         } catch (err) {
-            // 이메일이 이미 존재하는 경우, 자동으로 로그인을 시도하여 권한(이름)만 업데이트 후 해당 공연에 조인시킴 (Seamless Join)
-            if (err.code === 'auth/email-already-in-use') {
-                try {
-                    const loginRes = await signInWithEmailAndPassword(auth, email, password);
-
-                    if (currentEventId) {
-                        await setDoc(doc(db, "events", currentEventId, "performers", loginRes.user.uid), {
-                            uid: loginRes.user.uid,
-                            name: name, // 가입 창에서 새롭게 입력한 이름 적용!
-                            email: email,
-                            role: 'performer',
-                            createdAt: new Date().toISOString()
-                        }, { merge: true });
-                    }
-
-                    setUser({
-                        uid: loginRes.user.uid,
-                        name: name,
-                        email: loginRes.user.email,
-                        role: 'performer',
-                        isAdmin: isAdminEmail(loginRes.user.email)
-                    });
-                    return; // Seamless Join 성공
-                } catch (loginErr) {
-                    throw new Error("이미 존재하는 계정입니다. 해당 공연에 다시 합류하시려면 기존에 쓰시던 정확한 비밀번호를 입력해주세요. (비밀번호가 기억나지 않으시면 아래의 '로그인하기'로 넘어가서 '비밀번호를 잊으셨나요'를 통해 재설정해주세요.)");
-                }
+            if (err.code === 'auth/account-exists-with-different-credential') {
+                throw new Error("이미 과거에 다른 방식(이메일 등)으로 가입된 계정이 있습니다. 구글 계정과 이메일이 동일한지 확인해주시거나 비밀번호 재설정을 통해 진행해주세요.");
             }
             throw err;
         }
-    };
-
-    const resetPassword = (email) => {
-        return sendPasswordResetEmail(auth, email);
     };
 
     const performerLogout = async () => {
@@ -234,43 +290,45 @@ export const AuthProvider = ({ children }) => {
         setUser(updated);
     };
 
+    const updateOrganizerName = useCallback((name) => {
+        const trimmed = String(name || '').trim();
+        if (!trimmed) return;
+        setUser((prev) => {
+            if (!prev) return prev;
+            if (prev.name === trimmed) return prev;
+            return { ...prev, name: trimmed };
+        });
+    }, []);
+
     // Ticket Actions
     const verifyToken = async (token) => {
-        if (!currentEventId) return false;
+        if (!currentEventId || !token) return false;
         try {
-            // We assume verifyTicket function will check against the DB.
-            // CAUTION: The existing cloud function `verifyTicket` might check the ROOT `reservations`.
-            // We probably need to update the cloud function OR implement client-side verification here 
-            // if we want to avoid deploying new cloud functions right now.
-            // For now, let's assume we implement a client-side check if possible, or we need to update cloud fn.
-            // Since User requested "Refactoring", we should probably stick to client-side logic for now if possible 
-            // or mark Cloud Function as TODO.
-            // Given I cannot edit Cloud Functions (usually in `functions/` dir, not visible here?), 
-            // I will implement a client-side check similar to `Home.jsx` logic, strictly for verification state.
-            // Wait, security risk?
-            // `verifyToken` in client just updates Local State. Real security is Firestore Rules.
-            // So client-side check is acceptable for UI state "isVerified".
-
-            // Check if token exists in events/{eventId}/reservations
-            // ... (Logic requires importing query/getDocs/collection/where inside AuthContext, or call API)
-            // To emulate existing behavior without breaking too much:
-
             const verifyTicketFn = httpsCallable(functions, "verifyTicket");
-            // The Cloud Function needs `eventId` if we update it.
-            // If we don't update Cloud Function yet, it will look in root `reservations`.
-            // But we moved reservations to `events/{eventId}/reservations`.
-            // So the Cloud Function WILL FAIL.
+            const response = await verifyTicketFn({
+                token,
+                eventId: currentEventId
+            });
+            const result = response.data || {};
+            if (!result.success) return false;
 
-            // Temporary Client-Side Verification for MVP:
-            // We can query firestore directly here since we have `db`.
+            const deviceUid = getDeviceUid();
+            const verifiedUser = {
+                uid: auth.currentUser?.uid || deviceUid,
+                name: result.name || '',
+                role: 'audience',
+                isVerified: true,
+                reservationId: result.reservationId || null,
+                token,
+                checkedIn: Boolean(result.checkedIn),
+                checkedInAt: result.checkedInAt || null,
+                enteredAt: new Date().toISOString()
+            };
 
-            // Import query/where/getDocs if not imported.
-            // But imports are at top. I need to ensure they are available.
-
-            // See Step 284 replacement below for full implementation.
-
-            // For now, I will return false to force usage of updated logic.
-            return false;
+            const storageKey = `posta_guest_${currentEventId}`;
+            localStorage.setItem(storageKey, JSON.stringify(verifiedUser));
+            setUser(verifiedUser);
+            return true;
 
         } catch (err) {
             console.error("Token verification failed:", err);
@@ -278,54 +336,16 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Re-implement verifyToken with client-side query for now
-    // (Actual implementation in Replace Block)
-
     const value = {
         user,
         loading,
         performerLogin,
-        performerSignup,
         audienceLogin,
         logout,
         updateNickname,
-        // verifyToken needs to be defined inside component or robustly
-        verifyToken: async (token) => {
-            if (!currentEventId) return false;
-            // Client-side verification against event reservations
-            try {
-                const { collection, query, where, getDocs } = await import('../api/firebase');
-                const q = query(collection(db, 'events', currentEventId, 'reservations'), where('token', '==', token));
-                const snap = await getDocs(q);
-                if (snap.empty) return false;
-
-                const data = snap.docs[0].data();
-                if (!data.depositConfirmed) return false;
-
-                const deviceUid = getDeviceUid();
-                const verifiedUser = {
-                    uid: auth.currentUser?.uid || deviceUid,
-                    name: data.name || '',
-                    role: 'audience',
-                    isVerified: true,
-                    reservationId: snap.docs[0].id,
-                    token,
-                    checkedIn: Boolean(data.checkedIn),
-                    checkedInAt: data.checkedInAt || null,
-                    enteredAt: new Date().toISOString()
-                };
-
-                const storageKey = `posta_guest_${currentEventId}`;
-                localStorage.setItem(storageKey, JSON.stringify(verifiedUser));
-                setUser(verifiedUser);
-                return true;
-            } catch (e) {
-                console.error("Client verify failed", e);
-                return false;
-            }
-        },
-        resetPassword,
-        authInitialized
+        verifyToken,
+        authInitialized,
+        updateOrganizerName
     };
 
     return (

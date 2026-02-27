@@ -1,14 +1,17 @@
 import React, { useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import classes from './Layout.module.css';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
+import GoogleAd from './GoogleAd';
+import { AD_SLOTS } from '../config/adsense';
 
 const Layout = () => {
     const { user, logout } = useAuth();
     const { eventData } = useEvent();
     const navigate = useNavigate();
+    const { eventId } = useParams();
 
     // 모바일 미리보기 (iframe) 환경일 때 마우스 드래그를 터치 스와이프로 변환하는 로직
     useEffect(() => {
@@ -129,7 +132,7 @@ const Layout = () => {
             logout(); // Logout to switch back to nothing (or audience flow)
             navigate('.'); // Go to event home
         } else {
-            navigate('performer/login');
+            navigate(`/e/${eventId}/performer/login`);
         }
     };
 
@@ -188,6 +191,17 @@ const Layout = () => {
             <main className={classes.main}>
                 <Outlet />
             </main>
+
+            {/* Footer Ad — 관리자/체크인 페이지에서는 비표시 */}
+            {!isAdminPage && !isCheckinPage && (
+                <footer style={{ padding: '0 1rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+                    <GoogleAd
+                        slotId={AD_SLOTS.EVENT_FOOTER.slotId}
+                        format={AD_SLOTS.EVENT_FOOTER.format}
+                        label={AD_SLOTS.EVENT_FOOTER.label}
+                    />
+                </footer>
+            )}
         </div>
     );
 };

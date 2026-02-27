@@ -6,12 +6,11 @@ import {
     getAuth,
     connectAuthEmulator,
     onAuthStateChanged,
-    signInWithEmailAndPassword,
     signOut,
-    createUserWithEmailAndPassword,
     updateProfile,
-    sendPasswordResetEmail,
-    signInAnonymously
+    signInAnonymously,
+    GoogleAuthProvider,
+    signInWithPopup
 } from "firebase/auth";
 import {
     getFirestore,
@@ -29,7 +28,8 @@ import {
     orderBy,
     onSnapshot,
     serverTimestamp,
-    limit
+    limit,
+    writeBatch
 } from "firebase/firestore";
 import {
     getFunctions,
@@ -73,12 +73,11 @@ if (useEmulators) {
 // Re-export Auth Functions
 export {
     onAuthStateChanged,
-    signInWithEmailAndPassword,
     signOut,
-    createUserWithEmailAndPassword,
     updateProfile,
-    sendPasswordResetEmail,
-    signInAnonymously
+    signInAnonymously,
+    GoogleAuthProvider,
+    signInWithPopup
 };
 
 // Re-export Firestore Functions
@@ -96,7 +95,8 @@ export {
     orderBy,
     onSnapshot,
     serverTimestamp,
-    limit
+    limit,
+    writeBatch
 };
 
 export { httpsCallable };

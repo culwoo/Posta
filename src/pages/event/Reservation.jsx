@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { db, collection, addDoc, doc, updateDoc, getDoc, onSnapshot, storage, storageRef, uploadBytes, getDownloadURL } from "../../api/firebase";
+import {
+  auth,
+  db,
+  functions,
+  httpsCallable,
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  getDoc,
+  storage,
+  storageRef,
+  uploadBytes,
+  getDownloadURL
+} from "../../api/firebase";
 import { useEvent } from "../../contexts/EventContext";
 import classes from "./Reservation.module.css";
 
@@ -9,6 +23,7 @@ const Reservation = () => {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1); // 1: Input, 2: Success
   const [reservationId, setReservationId] = useState(null);
+  const [reservationToken, setReservationToken] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ticketCount, setTicketCount] = useState(1);
   const [receiptUrl, setReceiptUrl] = useState(null);
@@ -42,6 +57,7 @@ const Reservation = () => {
               setReservationId(parsed.reservationId);
               setReceiptUrl(parsed.receiptUrl || null);
               setDepositConfirmed(data.depositConfirmed || false);
+              setReservationToken(parsed.token || data.token || null);
               setStep(2);
             } else {
               // DB에서 삭제된 예약이면 로컬 스토리지 비우기
@@ -75,11 +91,18 @@ const Reservation = () => {
   const handleReceiptUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!eventId || !reservationId) return;
+
+    const uploaderUid = auth.currentUser?.uid;
+    if (!uploaderUid) {
+      alert("로그인 상태 확인 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
 
     setUploadingReceipt(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `receipts/${eventId}/${reservationId}_${Date.now()}.${fileExt}`;
+      const fileExt = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const fileName = `receipts/${eventId}/${uploaderUid}/${reservationId}_${Date.now()}.${fileExt}`;
       const imageRef = storageRef(storage, fileName);
 
       await uploadBytes(imageRef, file);
@@ -123,22 +146,44 @@ const Reservation = () => {
       };
 
       if (reservationId) {
+        const savedData = localStorage.getItem(`reserved_${eventId}`);
+        const parsed = savedData ? JSON.parse(savedData) : {};
+
         await updateDoc(doc(db, "events", eventId, "reservations", reservationId), {
           ...payload,
           updatedAt: new Date().toISOString(),
         });
-        localStorage.setItem(`reserved_${eventId}`, JSON.stringify({ ...payload, reservationId }));
+        localStorage.setItem(
+          `reserved_${eventId}`,
+          JSON.stringify({
+            ...parsed,
+            ...payload,
+            reservationId,
+            token: reservationToken || parsed.token || null
+          })
+        );
       } else {
+        const createdByUid = auth.currentUser?.uid;
+        if (!createdByUid) {
+          alert("로그인 상태 확인 중입니다. 잠시 후 다시 시도해주세요.");
+          return;
+        }
+
         const token = 'r_' + Math.random().toString(36).substr(2, 9);
         const docRef = await addDoc(collection(db, "events", eventId, "reservations"), {
           ...payload,
           token,
+          createdByUid,
           status: "reserved",
           depositConfirmed: false,
           createdAt: new Date().toISOString(),
         });
         setReservationId(docRef.id);
-        localStorage.setItem(`reserved_${eventId}`, JSON.stringify({ ...payload, reservationId: docRef.id }));
+        setReservationToken(token);
+        localStorage.setItem(
+          `reserved_${eventId}`,
+          JSON.stringify({ ...payload, reservationId: docRef.id, token })
+        );
       }
 
       setStep(2);
@@ -153,121 +198,35 @@ const Reservation = () => {
   const handleAIVerify = async () => {
     if (!eventId || !reservationId || !receiptUrl) return;
 
-    const expectedAmount = ticketPrice ? Number(ticketPrice) * ticketCount : 0;
-    const expectedName = name;
-
-    if (expectedAmount <= 0) {
-      alert("예상 입금액 정보가 없어 AI 확인을 진행할 수 없습니다.");
-      return;
-    }
-
     setVerifyingAI(true);
     try {
-      const response = await fetch(receiptUrl);
-      const blob = await response.blob();
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+      const verifyReceiptFn = httpsCallable(functions, "verifyDepositReceipt");
+      const response = await verifyReceiptFn({
+        eventId,
+        reservationId,
+        reservationToken: reservationToken || undefined,
+        originUrl: window.location.origin
       });
-
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) {
-        alert("Gemini API 키가 설정되지 않았습니다.");
-        return;
-      }
-
-      const prompt = `
-      Analyze this bank deposit receipt/transfer screenshot.
-      Target Sender/Depositor Name: ${expectedName}
-      Target Amount: ${expectedAmount} won
-      
-      Look closely at the image for the Korean text indicating the sender's name (보낸사람, 예금주, 입금자, 받는사람 등) and the amount transferred (보낸금액, 이체금액, 거래금액, 출금액 등).
-      Note that the sender name may be partially masked (e.g., 김*수). If it matches the pattern of the Target Sender/Depositor Name, consider it a valid match.
-      The transfer amount should exactly match the Target Amount.
-      
-      Determine if the receipt shows a successful transfer matching BOTH the exact target amount AND the sender name.
-      Return ONLY a valid JSON object with these keys (no markdown, no backticks, just raw JSON):
-      {
-        "isValid": true or false,
-        "detectedName": "string of the sender name found, or null if not found",
-        "detectedAmount": "number of the transferred amount found, or null",
-        "reason": "very brief explanation in Korean"
-      }
-      `;
-
-      const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'];
-      let apiRes = null;
-      let data = null;
-
-      for (const model of models) {
-        try {
-          apiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-                    { text: prompt }
-                  ]
-                }]
-              })
-            }
-          );
-
-          if (apiRes.ok) {
-            data = await apiRes.json();
-            if (data.candidates && data.candidates.length > 0) {
-              console.log(`Successfully verified with ${model}`);
-              break; // Success, exit the loop
-            } else {
-              console.warn(`Model ${model} returned OK but without candidates.`);
-              data = null; // Reset data for the next model
-            }
-          } else {
-            const errorText = await apiRes.text();
-            console.warn(`Model ${model} failed with status ${apiRes.status}: ${errorText}`);
-            data = null; // Important: Clear data if failed
-          }
-        } catch (err) {
-          console.error(`Error with model ${model}:`, err);
-          data = null;
-        }
-      }
-
-      if (!data || !data.candidates || data.candidates.length === 0) {
-        throw new Error("All Gemini models failed to verify or hit rate limits.");
-      }
-
-      const text = data.candidates[0].content.parts[0].text || '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) throw new Error("Could not parse JSON from AI response");
-
-      const result = JSON.parse(jsonMatch[0]);
+      const result = response.data || {};
 
       if (result.isValid) {
-        await updateDoc(doc(db, "events", eventId, "reservations", reservationId), {
-          depositConfirmed: true,
-          depositConfirmedAt: new Date().toISOString(),
-          aiVerified: true,
-          aiLog: result,
-          originUrl: window.location.origin
-        });
         setDepositConfirmed(true);
-
         alert(`🎉 [입금 확인 완료]\nAI가 정상적으로 입금을 확인했습니다.\n입력하신 이메일로 모바일 티켓이 발송됩니다.`);
       } else {
-        alert(`[AI 확인 실패]\nAI가 영수증을 명확히 인식하지 못했습니다.\n사유: ${result.reason}\n\n걱정하지 마세요! 빠른 시일 내에 관리자가 수동으로 확인 후 승인해드릴 예정입니다.`);
+        alert(
+          `[AI 확인 실패]\nAI가 영수증을 명확히 인식하지 못했습니다.\n사유: ${result.reason || "수동 확인 필요"}\n\n걱정하지 마세요! 빠른 시일 내에 관리자가 수동으로 확인 후 승인해드릴 예정입니다.`
+        );
       }
 
     } catch (err) {
       console.error("AI Verification failed:", err);
-      alert("AI 검증 중 오류가 발생했습니다. 관리자가 수동으로 확인할 예정이니 조금만 기다려주세요.");
+      if (err?.code === "unauthenticated") {
+        alert("로그인이 필요합니다. 페이지를 새로고침한 뒤 다시 시도해주세요.");
+      } else if (err?.code === "permission-denied") {
+        alert("이 예약을 확인할 권한이 없습니다. 동일한 브라우저에서 다시 시도해주세요.");
+      } else {
+        alert("AI 검증 중 오류가 발생했습니다. 관리자가 수동으로 확인할 예정이니 조금만 기다려주세요.");
+      }
     } finally {
       setVerifyingAI(false);
     }
@@ -299,6 +258,7 @@ const Reservation = () => {
     if (window.confirm("현재 예약 내역 창을 닫고, 새로운 예매를 진행하시겠습니까? (기존 예약은 정상 처리됩니다)")) {
       localStorage.removeItem(`reserved_${eventId}`);
       setReservationId(null);
+      setReservationToken(null);
       setReceiptUrl(null);
       setName("");
       setPhone("");
