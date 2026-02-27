@@ -1,3 +1,4 @@
+/* ===== ConcertInfo: Glassmorphism ===== */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -23,18 +24,33 @@
     margin-bottom: 3rem;
     color: var(--text-primary);
     font-family: var(--font-hand);
+    text-shadow: 0 0 20px rgba(208, 76, 49, 0.15);
 }
 
+/* ===== Info Card: Glass ===== */
 .infoCard {
-    background-color: var(--bg-secondary);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
     padding: 2.5rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.infoCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
 }
 
 .infoRow {
@@ -49,14 +65,14 @@
     height: 28px;
     min-width: 28px;
     margin-top: 0.1rem;
-    filter: drop-shadow(0 2px 4px rgba(246, 196, 88, 0.3));
+    filter: drop-shadow(0 2px 6px rgba(246, 196, 88, 0.4));
 }
 
 .infoRow h3 {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.4);
     margin: 0 0 0.5rem 0;
     font-weight: 600;
 }
@@ -77,7 +93,7 @@
     margin-top: 0.2rem;
 }
 
-/* --- Setlist Layout --- */
+/* ===== Setlist: Glass Cards ===== */
 .setlistContainer {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -86,18 +102,33 @@
 }
 
 .part {
-    background-color: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 2.5rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.03);
-    transition: transform 0.3s ease;
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     height: 100%;
-    /* Fill height */
+    position: relative;
+    overflow: hidden;
+}
+
+.part::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
 }
 
 .part:hover {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
 }
 
 .partTitle {
@@ -117,9 +148,10 @@
     left: 50%;
     transform: translateX(-50%);
     width: 50px;
-    height: 4px;
-    background-color: var(--primary-color);
+    height: 3px;
+    background: linear-gradient(90deg, rgba(208, 76, 49, 0.8), rgba(246, 196, 88, 0.6));
     border-radius: 2px;
+    box-shadow: 0 0 8px rgba(208, 76, 49, 0.3);
 }
 
 .list {
@@ -132,14 +164,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* Center vertically for cleaner look */
     padding: 1rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     gap: 1.5rem;
+    transition: background 0.15s ease;
 }
 
 .item:last-child {
     border-bottom: none;
+}
+
+.item:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    margin: 0 -0.5rem;
+    padding: 1rem 0.5rem;
 }
 
 .songTitle {
@@ -149,48 +188,42 @@
     line-height: 1.3;
     text-align: left;
     flex: 1;
-    /* Take available space */
 }
 
 .artist {
     font-size: 0.95rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     text-align: right;
     white-space: nowrap;
-    opacity: 0.8;
 }
 
-/* --- Divider (between Info & Setlist) --- */
+/* ===== Intermission Divider ===== */
 .intermission {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     margin: 3.5rem 0;
-    /* Center position */
 }
 
 .intermissionLine {
     width: 120px;
-    height: 2px;
-    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.15), transparent);
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.12), transparent);
 }
 
-
-/* --- Mobile / Tablet Styles --- */
+/* ===== Responsive ===== */
 @media (max-width: 1024px) {
     .container {
         max-width: 800px;
     }
 
     .setlistContainer {
-        /* Mobile: Stack vertically */
         grid-template-columns: 1fr;
         gap: 2.5rem;
     }
 }
 
-/* Long text handling */
 @media (max-width: 500px) {
     .item {
         flex-direction: column;

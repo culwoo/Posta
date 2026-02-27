@@ -1,3 +1,4 @@
+/* ===== Admin Page: Glassmorphism ===== */
 .container {
     padding: 2rem;
     max-width: 1200px;
@@ -12,14 +13,14 @@
 .totalCount {
     font-size: 1rem;
     margin-left: 1rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     font-weight: normal;
 }
 
 .stats {
     font-size: 1rem;
     margin-left: 1rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     font-weight: normal;
 }
 
@@ -30,14 +31,29 @@
     align-items: start;
 }
 
+/* ===== Card: Glass ===== */
 .card {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
     padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    /* Prevents the card from stretching the grid if internal content is too wide */
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     min-width: 0;
     max-width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.10), transparent);
 }
 
 .listActions {
@@ -47,16 +63,23 @@
 }
 
 .deleteAllBtn {
-    background-color: var(--primary-color);
+    background: rgba(208, 76, 49, 0.8);
     color: #ffffff;
     border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+    padding: 6px 14px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.85rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(208, 76, 49, 0.2);
 }
 
-/* Table */
+.deleteAllBtn:hover {
+    background: rgba(208, 76, 49, 0.95);
+    box-shadow: 0 4px 12px rgba(208, 76, 49, 0.3);
+}
+
+/* ===== Table: Glass ===== */
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -66,7 +89,22 @@
 .table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid var(--text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table th {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .reservationName {
@@ -79,83 +117,109 @@
     flex-direction: column;
     gap: 0.2rem;
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .reservationTime {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
 }
 
+/* ===== Badges: Glass ===== */
 .badge {
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
     font-size: 0.8rem;
     font-weight: bold;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .badge.pending {
-    background-color: var(--text-secondary);
-    color: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .badge.paid {
-    background-color: #55efc4;
-    color: #00b894;
+    background: rgba(0, 212, 170, 0.12);
+    color: #00d4aa;
+    border: 1px solid rgba(0, 212, 170, 0.15);
 }
 
 .badge.ambiguous {
-    background-color: var(--accent-color);
-    color: var(--bg-primary);
+    background: rgba(246, 196, 88, 0.12);
+    color: #f6c458;
+    border: 1px solid rgba(246, 196, 88, 0.15);
 }
 
 .badge.onsite_pending {
-    background-color: #ffeaa7;
-    color: #d35400;
+    background: rgba(255, 234, 167, 0.12);
+    color: #ffd93d;
+    border: 1px solid rgba(255, 234, 167, 0.15);
 }
 
 .badge.onsite_paid {
-    background-color: #74b9ff;
-    color: #0984e3;
+    background: rgba(116, 185, 255, 0.12);
+    color: #74b9ff;
+    border: 1px solid rgba(116, 185, 255, 0.15);
 }
 
 .tr.ambiguous {
-    background-color: var(--bg-secondary);
+    background: rgba(246, 196, 88, 0.04);
 }
 
+/* ===== Action Buttons: Glass ===== */
 .approveBtn {
-    background-color: #00b894;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: rgba(0, 212, 170, 0.15);
+    color: #00d4aa;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.approveBtn:hover {
+    background: rgba(0, 212, 170, 0.25);
+    box-shadow: 0 2px 8px rgba(0, 212, 170, 0.15);
 }
 
 .linkBtn {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: rgba(208, 76, 49, 0.15);
+    color: rgba(208, 76, 49, 0.9);
+    border: 1px solid rgba(208, 76, 49, 0.2);
+    padding: 5px 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.linkBtn:hover {
+    background: rgba(208, 76, 49, 0.25);
 }
 
 .deleteBtn {
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: rgba(255, 71, 87, 0.12);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 71, 87, 0.15);
+    padding: 5px 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.8rem;
     margin-left: 6px;
+    transition: all 0.2s ease;
 }
 
+.deleteBtn:hover {
+    background: rgba(255, 71, 87, 0.2);
+}
+
+/* ===== Log Section: Glass ===== */
 .logHint {
     margin: 0.5rem 0 1rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     font-size: 0.9rem;
 }
 
@@ -166,16 +230,23 @@
     max-height: 360px;
     overflow-y: auto;
     padding: 0.75rem;
-    border-radius: 10px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--text-secondary);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .logItem {
-    background: var(--bg-secondary);
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
     padding: 0.75rem 0.9rem;
-    border: 1px solid var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.15s ease;
+}
+
+.logItem:hover {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .logHeader {
@@ -198,10 +269,11 @@
 
 .logEmail {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     word-break: break-all;
 }
 
+/* ===== Log Badges: Glass ===== */
 .logBadge {
     padding: 4px 10px;
     border-radius: 999px;
@@ -210,34 +282,34 @@
 }
 
 .logPending {
-    background-color: var(--text-secondary);
-    color: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .logSending {
-    background-color: #ffeaa7;
-    color: #d35400;
+    background: rgba(255, 234, 167, 0.15);
+    color: #ffd93d;
 }
 
 .logSuccess {
-    background-color: #55efc4;
-    color: #00b894;
+    background: rgba(0, 212, 170, 0.15);
+    color: #00d4aa;
 }
 
 .logError {
-    background-color: #ff7675;
-    color: #d63031;
+    background: rgba(255, 71, 87, 0.15);
+    color: #ff6b6b;
 }
 
 .logIdle {
-    background-color: var(--text-secondary);
-    color: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.45);
 }
 
 .logMeta {
     margin-top: 0.5rem;
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.35);
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -245,16 +317,16 @@
 
 .logTimeLabel {
     font-weight: bold;
-    color: var(--text-primary);
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .logMessage {
     margin-top: 0.5rem;
     font-size: 0.85rem;
-    color: var(--primary-color);
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--text-secondary);
-    border-radius: 6px;
+    color: rgba(208, 76, 49, 0.9);
+    background: rgba(208, 76, 49, 0.06);
+    border: 1px solid rgba(208, 76, 49, 0.1);
+    border-radius: 8px;
     padding: 6px 8px;
     white-space: pre-wrap;
 }
@@ -262,19 +334,19 @@
 .emptyState {
     padding: 1rem;
     text-align: center;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.35);
     font-size: 0.9rem;
 }
 
 .sectionHint {
     margin: 0.5rem 0 1rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     font-size: 0.9rem;
 }
 
 .errorText {
     margin: 0.5rem 0 1rem;
-    color: var(--primary-color);
+    color: #ff6b6b;
     font-size: 0.9rem;
 }
 
@@ -286,44 +358,50 @@
 }
 
 .checkinBadge {
-    background-color: #6c5ce7;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: rgba(108, 92, 231, 0.15);
+    color: rgba(108, 92, 231, 0.9);
+    padding: 3px 8px;
+    border-radius: 6px;
     font-size: 0.75rem;
     font-weight: bold;
+    border: 1px solid rgba(108, 92, 231, 0.15);
 }
 
 .noCheckin {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .visitSelect {
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--text-secondary);
-    background-color: var(--bg-primary);
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--text-primary);
     font-size: 0.9rem;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
+.visitSelect:focus {
+    border-color: rgba(208, 76, 49, 0.5);
+    outline: none;
+}
 
 .visitSelect option {
-    background-color: #1a1a1a;
-    color: #efefef;
+    background-color: #1a1a2e;
+    color: #f0f0f5;
 }
 
 .visitSelectUnselected {
-    border: 1px solid #e17055;
-    color: #ffeaa7;
-    background-color: #e17055;
+    border: 1px solid rgba(225, 112, 85, 0.5);
+    color: #ffd93d;
+    background: rgba(225, 112, 85, 0.12);
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(225, 112, 85, 0.4);
+        box-shadow: 0 0 0 0 rgba(225, 112, 85, 0.3);
     }
 
     70% {
@@ -335,7 +413,7 @@
     }
 }
 
-/* Mobile & Iframe Responsiveness */
+/* ===== Responsive ===== */
 .listContainer {
     width: 100%;
     overflow-x: auto;
@@ -361,6 +439,5 @@
         padding: 8px 6px;
         font-size: 0.85rem;
         white-space: nowrap;
-        /* Prevent awkward wrapping in confined spaces */
     }
 }

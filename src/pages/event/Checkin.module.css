@@ -18,11 +18,11 @@
 }
 
 .header p {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.95rem;
 }
 
-/* ─── 통계 카드 ─── */
+/* ─── 통계 카드: Glass ─── */
 .stats {
   display: grid;
   gap: 1rem;
@@ -41,15 +41,35 @@
 }
 
 .statCard {
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 14px;
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.statCard:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .statCard strong {
@@ -64,7 +84,7 @@
 .progressBarContainer {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   margin-top: 0.4rem;
   overflow: hidden;
@@ -72,17 +92,21 @@
 
 .progressBar {
   height: 100%;
-  background: linear-gradient(90deg, #4caf50, #81c784);
+  background: linear-gradient(90deg, rgba(0, 212, 170, 0.8), rgba(0, 212, 170, 0.5));
   border-radius: 3px;
   transition: width 0.6s ease;
+  box-shadow: 0 0 8px rgba(0, 212, 170, 0.3);
 }
 
-/* ─── 모드 전환 탭 ─── */
+/* ─── 모드 전환 탭: Glass ─── */
 .modeTabs {
   display: flex;
   gap: 0;
   margin-bottom: 1.5rem;
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
   padding: 4px;
   max-width: 420px;
@@ -96,17 +120,21 @@
   border: none;
   border-radius: 11px;
   background: transparent;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.45);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modeTab:hover {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .modeTabActive {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(208, 76, 49, 0.3);
+  box-shadow: 0 4px 12px rgba(208, 76, 49, 0.25);
 }
 
 /* ─── QR 스캐너 ─── */
@@ -129,32 +157,36 @@
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .controlBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .torchActive {
-  background: #f6c458 !important;
-  color: #333 !important;
-  border-color: #f6c458;
+  background: rgba(246, 196, 88, 0.85) !important;
+  color: #1a1a2e !important;
+  border-color: rgba(246, 196, 88, 0.5);
+  box-shadow: 0 2px 12px rgba(246, 196, 88, 0.3);
 }
 
 .videoFrame {
   width: 100%;
   max-width: 420px;
   aspect-ratio: 4 / 5;
-  background: var(--bg-primary);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   position: relative;
 }
 
@@ -192,7 +224,7 @@
   position: absolute;
   width: 24px;
   height: 24px;
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.7);
   border-style: solid;
   border-width: 0;
 }
@@ -233,7 +265,7 @@
   position: absolute;
   width: 65%;
   aspect-ratio: 1;
-  border: 2px solid rgba(76, 175, 80, 0.6);
+  border: 2px solid rgba(0, 212, 170, 0.5);
   border-radius: 12px;
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -250,7 +282,7 @@
   }
 }
 
-/* 상태 카드 */
+/* ─── 상태 카드: Glass ─── */
 .statusCard {
   width: 100%;
   max-width: 420px;
@@ -259,6 +291,8 @@
   font-weight: 600;
   text-align: center;
   animation: slideUp 0.3s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 @keyframes slideUp {
@@ -281,50 +315,66 @@
   padding: 0.8rem 1.4rem;
   border-radius: 12px;
   border: none;
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
   color: #fff;
   font-weight: 600;
   cursor: pointer;
   font-size: 1rem;
+  box-shadow: 0 4px 16px rgba(208, 76, 49, 0.2);
+  transition: all 0.25s ease;
+}
+
+.startScanButton:hover {
+  box-shadow: 0 6px 20px rgba(208, 76, 49, 0.35);
+  transform: translateY(-1px);
 }
 
 .success {
-  background: #dff7ee;
-  color: #108a5d;
+  background: rgba(0, 212, 170, 0.12);
+  color: #00d4aa;
+  border: 1px solid rgba(0, 212, 170, 0.15);
 }
 
 .error {
-  background: #ffe8e6;
-  color: #c0392b;
+  background: rgba(255, 71, 87, 0.12);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 71, 87, 0.15);
 }
 
 .warning {
-  background: #fff3e0;
-  color: #e65100;
+  background: rgba(246, 196, 88, 0.12);
+  color: #f6c458;
+  border: 1px solid rgba(246, 196, 88, 0.15);
 }
 
 .info {
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .loading {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* 카메라 실패 시 Fallback 전환 버튼 */
 .fallbackSwitchBtn {
   display: inline-block;
   margin-top: 0.6rem;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 8px;
-  background: #e65100;
+  background: rgba(230, 81, 0, 0.8);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.fallbackSwitchBtn:hover {
+  background: rgba(230, 81, 0, 0.95);
 }
 
 /* ─── 직접 토큰 입력 ─── */
@@ -336,7 +386,7 @@
 
 .manualHint {
   font-size: 0.82rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 0.5rem;
   text-align: center;
 }
@@ -353,25 +403,38 @@
   flex: 1;
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
   font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.manual input:focus {
+  border-color: rgba(208, 76, 49, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
 }
 
 .manual input::placeholder {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .manual button {
   padding: 0.7rem 1.2rem;
   border-radius: 10px;
   border: none;
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
+}
+
+.manual button:hover {
+  box-shadow: 0 4px 12px rgba(208, 76, 49, 0.25);
 }
 
 .manual button:disabled {
@@ -379,7 +442,7 @@
   cursor: not-allowed;
 }
 
-/* ─── 수동 체크인 (Fallback) ─── */
+/* ─── 수동 체크인 (Fallback): Glass ─── */
 .fallbackSection {
   max-width: 640px;
   margin: 0 auto;
@@ -396,7 +459,7 @@
 }
 
 .fallbackHeader p {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.9rem;
 }
 
@@ -410,27 +473,40 @@
   flex: 1;
   padding: 0.8rem 1rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
   font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.fallbackSearchBox input:focus {
+  border-color: rgba(208, 76, 49, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
 }
 
 .fallbackSearchBox input::placeholder {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .fallbackSearchBox button {
   padding: 0.8rem 1.4rem;
   border-radius: 12px;
   border: none;
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
   color: #fff;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
+}
+
+.fallbackSearchBox button:hover {
+  box-shadow: 0 4px 12px rgba(208, 76, 49, 0.25);
 }
 
 .fallbackSearchBox button:disabled {
@@ -446,7 +522,7 @@
 
 .fallbackResultCount {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 0.25rem;
 }
 
@@ -457,14 +533,17 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 14px;
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: border-color 0.2s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
 .fallbackCard:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .fallbackCheckedIn {
@@ -487,9 +566,9 @@
 
 .ticketBadge {
   font-size: 0.75rem;
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
   color: #fff;
-  padding: 0.15rem 0.45rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 6px;
   font-weight: 600;
 }
@@ -500,13 +579,13 @@
   gap: 0.6rem;
   margin-top: 0.3rem;
   font-size: 0.82rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .checkedInLabel {
   margin-top: 0.4rem;
   font-size: 0.82rem;
-  color: #4caf50;
+  color: #00d4aa;
   font-weight: 600;
 }
 
@@ -518,17 +597,19 @@
   padding: 0.6rem 1.2rem;
   border-radius: 10px;
   border: none;
-  background: #4caf50;
+  background: linear-gradient(135deg, rgba(0, 212, 170, 0.8), rgba(0, 212, 170, 0.9));
   color: #fff;
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.25s ease;
   white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
 }
 
 .checkinBtn:hover {
-  background: #43a047;
+  box-shadow: 0 6px 20px rgba(0, 212, 170, 0.3);
+  transform: translateY(-1px);
 }
 
 .checkinBtn:active {
@@ -544,16 +625,17 @@
   display: inline-block;
   padding: 0.45rem 0.9rem;
   border-radius: 10px;
-  background: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
+  background: rgba(0, 212, 170, 0.12);
+  color: #00d4aa;
   font-weight: 700;
   font-size: 0.85rem;
+  border: 1px solid rgba(0, 212, 170, 0.15);
 }
 
 .fallbackEmpty {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .fallbackEmpty p {

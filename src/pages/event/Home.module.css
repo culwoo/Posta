@@ -1,4 +1,4 @@
-/* Existing styles... */
+/* ===== Home Page: Glassmorphism ===== */
 .home {
     padding-bottom: 32px;
 }
@@ -13,9 +13,10 @@
     width: 100%;
     max-width: 280px;
     aspect-ratio: 2382 / 3369;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nicknameSection {
@@ -28,11 +29,13 @@
     margin-top: 0;
     width: 100%;
     max-width: 280px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    padding: 0.75rem;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 14px;
+    padding: 0.85rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-sizing: border-box;
 }
 
@@ -41,6 +44,7 @@
     color: var(--text-primary);
     display: block;
     margin-bottom: 0.6rem;
+    font-size: 0.95rem;
 }
 
 .nicknameControls {
@@ -53,32 +57,50 @@
     flex: 1;
     padding: 0.6rem 0.7rem;
     border-radius: 10px;
-    border: 1px solid var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
     font-size: 0.9rem;
     min-width: 0;
     box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.nicknameControls input:focus {
+    outline: none;
+    border-color: rgba(208, 76, 49, 0.5);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba(208, 76, 49, 0.1);
 }
 
 .nicknameControls button {
     padding: 0.6rem 0.9rem;
     border-radius: 10px;
     border: none;
-    background: var(--primary-color);
+    background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
     color: white;
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
     white-space: nowrap;
     box-sizing: border-box;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(208, 76, 49, 0.2);
+}
+
+.nicknameControls button:hover {
+    box-shadow: 0 6px 20px rgba(208, 76, 49, 0.35);
+    transform: translateY(-1px);
 }
 
 .nicknameSaved {
     margin-top: 0.6rem;
     font-size: 0.85rem;
-    color: #00b894;
+    color: #00d4aa;
     font-weight: 600;
 }
 
+/* ===== Flip Card ===== */
 .flipCard {
     width: 100%;
     max-width: 280px;
@@ -91,7 +113,6 @@
     width: 100%;
     transform-style: preserve-3d;
     transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-    /* Set backface hack to fix blur on webkit */
     -webkit-transform-style: preserve-3d;
 }
 
@@ -108,10 +129,8 @@
     width: 100%;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* Font smoothing for crisp text during 3d transform */
     -webkit-font-smoothing: antialiased;
     transform: translateZ(0);
-    /* Forces GPU layer without z-fighting */
 }
 
 .flipFront {
@@ -148,15 +167,18 @@
     object-fit: cover;
 }
 
+/* ===== Ticket Card: Glassmorphism ===== */
 .ticketCard {
     width: 100%;
     max-width: 280px;
     aspect-ratio: 2382 / 3369;
-    background: var(--bg-secondary);
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    border: 1px solid var(--text-secondary);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -167,14 +189,16 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    background: #00b894;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.9), rgba(0, 212, 170, 0.7));
     color: white;
     font-size: 0.75rem;
     font-weight: 700;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 999px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
     z-index: 2;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .ticketCard::before {
@@ -183,8 +207,9 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 6px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    height: 3px;
+    background: linear-gradient(90deg, rgba(208, 76, 49, 0.8), rgba(246, 196, 88, 0.6));
+    box-shadow: 0 0 12px rgba(208, 76, 49, 0.3);
 }
 
 .ticketHeader {
@@ -193,7 +218,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px dashed var(--text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .ticketTitle {
@@ -203,12 +228,13 @@
 }
 
 .ticketClass {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 0.8rem;
     font-weight: bold;
+    box-shadow: 0 2px 8px rgba(208, 76, 49, 0.2);
 }
 
 .ticketBody {
@@ -217,7 +243,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: var(--bg-primary);
+    background: rgba(0, 0, 0, 0.2);
     width: 100%;
     flex: 1;
 }
@@ -226,8 +252,9 @@
     width: 200px;
     height: 200px;
     margin-bottom: 1.5rem;
-    border: 4px solid white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .ticketName {
@@ -238,20 +265,21 @@
 }
 
 .ticketInfo {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.45);
     font-size: 0.9rem;
 }
 
 .ticketFooter {
     width: 100%;
-    padding: 0.6rem;
-    background: var(--primary-color);
+    padding: 0.7rem;
+    background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
     color: white;
     text-align: center;
     font-size: 0.9rem;
+    font-weight: 600;
 }
 
-/* Timeline Styles */
+/* ===== Timeline: Glassmorphism ===== */
 .timelineSection {
     padding: 1.5rem 1rem 2rem;
 }
@@ -272,7 +300,6 @@
     margin: 0 auto;
 }
 
-/* Vertical Line */
 .timelineLine {
     position: absolute;
     left: 50%;
@@ -280,7 +307,7 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background-color: #dfe6e9;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
     z-index: 0;
 }
 
@@ -296,10 +323,8 @@
 .contentBox,
 .dummyBox {
     flex: 1;
-    /* 50% width each */
 }
 
-/* Center Icon */
 .centerIcon {
     width: 40px;
     height: 40px;
@@ -308,33 +333,36 @@
     align-items: center;
     justify-content: center;
     color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     z-index: 2;
     margin: 0 1rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .iconGreen {
-    background-color: #00b894;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.85), rgba(0, 184, 148, 0.9));
 }
 
 .iconBlue {
-    background-color: #0984e3;
+    background: linear-gradient(135deg, rgba(9, 132, 227, 0.85), rgba(0, 119, 182, 0.9));
 }
 
 .iconYellow {
-    background-color: #fab1a0;
+    background: linear-gradient(135deg, rgba(250, 177, 160, 0.85), rgba(246, 196, 88, 0.9));
 }
 
 .iconPrimary {
-    background-color: #6c5ce7;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.85), rgba(108, 92, 231, 0.95));
 }
 
 .timeText {
     display: block;
     font-weight: bold;
-    color: #6c5ce7;
+    color: rgba(108, 92, 231, 0.9);
     font-size: 0.9rem;
     margin-bottom: 4px;
+    text-shadow: 0 0 8px rgba(108, 92, 231, 0.2);
 }
 
 .itemTitle {
@@ -352,19 +380,15 @@
     text-align: left;
 }
 
-/* Mobile Responsiveness */
+/* Mobile */
 @media (max-width: 600px) {
-
-    /* Keep centered layout but reduce padding */
     .timelineContainer {
         padding: 0 10px;
     }
 
     .centerIcon {
         margin: 0 0.5rem;
-        /* Reduce margin slightly */
         width: 32px;
-        /* Slightly smaller icon */
         height: 32px;
     }
 

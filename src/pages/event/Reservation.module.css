@@ -1,3 +1,4 @@
+/* ===== Reservation Page: Glassmorphism ===== */
 .container {
     padding: 2rem;
     max-width: 500px;
@@ -13,10 +14,11 @@
 }
 
 .subtitle {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.45);
     margin-bottom: 2rem;
 }
 
+/* ===== Form ===== */
 .form {
     display: flex;
     flex-direction: column;
@@ -38,58 +40,77 @@
 
 .inputGroup input {
     padding: 12px;
-    border: 2px solid var(--text-secondary);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 10px;
     font-size: 1rem;
     font-family: inherit;
-    /* Use global font */
-    transition: border-color 0.2s;
+    color: var(--text-primary);
+    transition: all 0.25s ease;
 }
 
 .inputGroup input:focus {
-    border-color: var(--primary-color);
+    border-color: rgba(208, 76, 49, 0.5);
     outline: none;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba(208, 76, 49, 0.1);
 }
 
+/* ===== Submit Button: Glass ===== */
 .submitBtn {
     margin-top: 1rem;
     padding: 14px;
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(208, 76, 49, 0.85), rgba(208, 76, 49, 0.95));
     color: white;
-    border: none;
-    border-radius: 8px;
+    border: 1px solid rgba(208, 76, 49, 0.3);
+    border-radius: 12px;
     font-size: 1.2rem;
     cursor: pointer;
     font-weight: bold;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(208, 76, 49, 0.2);
 }
 
 .submitBtn:hover {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(208, 76, 49, 0.95), rgba(208, 76, 49, 1));
+    box-shadow: 0 8px 24px rgba(208, 76, 49, 0.35);
+    transform: translateY(-2px);
 }
 
 .submitBtn:disabled {
-    background-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.06);
+    transform: none;
 }
 
+/* ===== Success ===== */
 .successStep {
     animation: fadeIn 0.5s ease-out;
 }
 
 .successTitle {
-    color: #00b894;
+    color: #00d4aa;
     font-size: 1.8rem;
     margin-bottom: 1.5rem;
+    text-shadow: 0 0 12px rgba(0, 212, 170, 0.2);
 }
 
+/* ===== Info Box: Glass Card ===== */
 .infoBox {
-    background-color: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 16px;
-    border-radius: 12px;
-    border: 1px solid var(--text-secondary);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 1.5rem;
     text-align: left;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .infoHeader {
@@ -107,17 +128,20 @@
 }
 
 .editBtn {
-    background-color: var(--primary-color);
+    background: rgba(208, 76, 49, 0.8);
     color: #ffffff;
     border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.85rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(208, 76, 49, 0.2);
 }
 
 .editBtn:hover {
-    background-color: var(--primary-color);
+    background: rgba(208, 76, 49, 0.95);
+    box-shadow: 0 4px 12px rgba(208, 76, 49, 0.3);
 }
 
 .infoList {
@@ -134,7 +158,7 @@
 }
 
 .infoLabel {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.45);
     font-weight: bold;
 }
 
@@ -146,16 +170,20 @@
 .infoNotice {
     margin-top: 0.75rem;
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.4);
     line-height: 1.4;
 }
 
+/* ===== Account Box: Glass ===== */
 .accountBox {
-    background-color: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 14px;
     margin-bottom: 1.5rem;
-    border: 2px dashed var(--text-secondary);
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .bankName {
@@ -174,15 +202,20 @@
     font-weight: bold;
     margin: 0;
     padding: 0;
+    transition: color 0.2s ease;
+}
+
+.bankNameButton:hover {
+    color: rgba(208, 76, 49, 0.9);
 }
 
 .bankNameButton:focus-visible {
-    outline: 2px solid var(--primary-color);
+    outline: 2px solid rgba(208, 76, 49, 0.5);
     outline-offset: 4px;
 }
 
 .accountName {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.45);
     margin-bottom: 0.5rem;
 }
 
@@ -190,6 +223,7 @@
     font-size: 1.5rem;
     color: var(--primary-color);
     margin-top: 0.5rem;
+    text-shadow: 0 0 10px rgba(208, 76, 49, 0.2);
 }
 
 .guideText {
@@ -203,6 +237,7 @@
     color: var(--accent-color);
     font-size: 0.95rem;
     font-weight: bold;
+    text-shadow: 0 0 8px rgba(246, 196, 88, 0.2);
 }
 
 @keyframes fadeIn {
