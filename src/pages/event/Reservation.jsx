@@ -15,6 +15,7 @@ import {
   getDownloadURL
 } from "../../api/firebase";
 import { useEvent } from "../../contexts/EventContext";
+import AIProgressTimer from "../../components/AIProgressTimer";
 import classes from "./Reservation.module.css";
 
 const Reservation = () => {
@@ -420,7 +421,7 @@ const Reservation = () => {
                             fontSize: '0.95rem', alignSelf: 'center'
                           }}
                         >
-                          {verifyingAI ? "🤖 AI가 영수증을 분석 중입니다..." : "🤖 입금 확인 후 예약 확정하기!"}
+                          {verifyingAI ? "분석 중..." : "🤖 입금 확인 후 예약 확정하기!"}
                         </button>
                         <label style={{
                           display: 'inline-block', padding: '0.5rem 0.8rem', backgroundColor: 'transparent', color: '#888', textAlign: 'center', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline'
@@ -428,6 +429,23 @@ const Reservation = () => {
                           {uploadingReceipt ? "업로드 중..." : "다른 이미지로 다시 올리기"}
                           <input type="file" accept="image/*" onChange={handleReceiptUpload} disabled={uploadingReceipt || verifyingAI} style={{ display: 'none' }} />
                         </label>
+                        <AIProgressTimer
+                          active={verifyingAI}
+                          title="AI 영수증 분석 중"
+                          icon="🧾"
+                          estimatedSeconds={20}
+                          steps={[
+                            { label: '영수증 이미지를 서버로 전송 중...' },
+                            { label: 'AI가 입금 내역을 분석 중...' },
+                            { label: '금액과 입금자명을 대조 중...' },
+                            { label: '결과를 확인하고 있습니다...' },
+                          ]}
+                          tips={[
+                            '영수증이 선명할수록 인식 정확도가 올라갑니다.',
+                            '입금 내역이 명확히 보이는 캡처가 좋아요.',
+                            'AI가 확인하지 못해도 관리자가 직접 확인합니다.',
+                          ]}
+                        />
                       </div>
                     )}
                   </div>

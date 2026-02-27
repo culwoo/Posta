@@ -14,6 +14,7 @@ import {
 } from '../../api/firebase';
 import { Search } from 'lucide-react';
 import { useEvent } from '../../contexts/EventContext';
+import AIProgressTimer from '../../components/AIProgressTimer';
 import classes from './Admin.module.css';
 
 const Admin = () => {
@@ -254,6 +255,23 @@ const Admin = () => {
 
     return (
         <div className={classes.container}>
+            <AIProgressTimer
+                active={Object.values(verifyingIds).some(v => v)}
+                title="AI 입금 검증 중"
+                icon="🤖"
+                estimatedSeconds={18}
+                steps={[
+                    { label: '영수증 이미지를 불러오는 중...' },
+                    { label: 'AI가 입금 정보를 분석 중...' },
+                    { label: '예약 정보와 대조 중...' },
+                    { label: '검증 결과를 처리 중...' },
+                ]}
+                tips={[
+                    '한 번에 하나씩 검증하면 더 정확합니다.',
+                    'AI 검증 실패 시 수동 승인이 가능합니다.',
+                    '영수증이 불분명하면 직접 확인해주세요.',
+                ]}
+            />
             <h2 className={classes.header}>
                 관리자 대시보드
                 <span className={classes.totalCount}>

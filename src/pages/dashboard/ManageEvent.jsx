@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { db, doc, getDoc, updateDoc, deleteDoc, storage, storageRef, uploadBytes, getDownloadURL } from '../../api/firebase';
 import { ArrowLeft, Save, Trash2, Upload, ExternalLink, Maximize2, X } from 'lucide-react';
+import AIProgressTimer from '../../components/AIProgressTimer';
 
 const ManageEvent = () => {
     const { eventId } = useParams();
@@ -452,6 +453,22 @@ Constraints:
 
     return (
         <div>
+            <AIProgressTimer
+                active={extractingColors}
+                title="AI 테마 색상 추출 중"
+                icon="🎨"
+                estimatedSeconds={12}
+                steps={[
+                    { label: '포스터 이미지를 분석 준비 중...' },
+                    { label: 'AI가 색상 팔레트를 추출 중...' },
+                    { label: '테마에 적합한 색상으로 변환 중...' },
+                ]}
+                tips={[
+                    '추출된 색상은 저장 버튼을 눌러 적용할 수 있어요.',
+                    '포스터의 대표색을 기반으로 테마가 생성됩니다.',
+                    '수동으로 색상을 변경할 수도 있습니다.',
+                ]}
+            />
             <div style={{ marginBottom: '1rem' }}>
                 <Link to=".." style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', textDecoration: 'none' }}>
                     <ArrowLeft size={16} /> 목록으로 돌아가기
