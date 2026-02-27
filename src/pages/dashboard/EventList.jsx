@@ -50,8 +50,6 @@ const EventList = () => {
                 </Link>
             </div>
 
-            <AdBanner placement="event-list" style={{ marginBottom: '1rem' }} />
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {events.length === 0 ? (
                     <p>생성된 이벤트가 없습니다.</p>
@@ -85,6 +83,9 @@ const EventList = () => {
                     ))
                 )}
             </div>
+
+            {/* 하단 광고 영역 */}
+            <AdBanner placement="event-list" style={{ marginTop: '2rem' }} />
         </div>
     );
 };

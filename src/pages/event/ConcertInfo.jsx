@@ -1,8 +1,6 @@
 import React from 'react';
 import { Clock, MapPin } from 'lucide-react';
 import { useEvent } from '../../contexts/EventContext';
-import GoogleAd from '../../components/GoogleAd';
-import { AD_SLOTS } from '../../config/adsense';
 import classes from './ConcertInfo.module.css';
 
 const ConcertInfo = () => {
@@ -81,14 +79,6 @@ const ConcertInfo = () => {
                     </div>
                 </>
             )}
-
-            {/* 광고 영역 */}
-            <GoogleAd
-                slotId={AD_SLOTS.EVENT_CONCERT_INFO.slotId}
-                format={AD_SLOTS.EVENT_CONCERT_INFO.format}
-                label={AD_SLOTS.EVENT_CONCERT_INFO.label}
-                style={{ marginTop: '1.5rem' }}
-            />
         </div>
     );
 };
