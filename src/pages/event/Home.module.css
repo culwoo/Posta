@@ -15,8 +15,8 @@
     aspect-ratio: 2382 / 3369;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border-light);
 }
 
 .nicknameSection {
@@ -172,13 +172,13 @@
     width: 100%;
     max-width: 280px;
     aspect-ratio: 2382 / 3369;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px) saturate(1.2);
-    -webkit-backdrop-filter: blur(20px) saturate(1.2);
-    border-radius: 18px;
+    background: var(--glass-bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: var(--glass-shadow-lg);
+    border: 1px solid var(--glass-border);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -225,6 +225,7 @@
     font-weight: bold;
     color: var(--text-primary);
     font-size: 1.1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .ticketClass {
@@ -262,11 +263,13 @@
     font-weight: bold;
     color: var(--text-primary);
     margin-bottom: 0.2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .ticketInfo {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 0.9rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .ticketFooter {
