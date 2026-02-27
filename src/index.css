@@ -70,11 +70,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow-x: hidden;
-  background-color: var(--bg-color);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(208, 76, 49, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(246, 196, 88, 0.03) 0%, transparent 50%);
-  background-attachment: fixed;
+  background-color: transparent;
 }
 
 h1 {
