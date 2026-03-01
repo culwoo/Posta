@@ -1,9 +1,9 @@
-/* ===== Layout Container ===== */
+﻿/* ===== Layout Container ===== */
 .container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: 'Gamja Flower', cursive;
+    font-family: var(--font-main);
     background-color: var(--bg-primary, #0a0a0f);
     position: relative;
 }

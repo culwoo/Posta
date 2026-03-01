@@ -1,4 +1,4 @@
-/* ===== ConcertInfo: Glassmorphism ===== */
+﻿/* ===== ConcertInfo: Glassmorphism ===== */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -23,7 +23,7 @@
     font-size: 2.5rem;
     margin-bottom: 3rem;
     color: var(--text-primary);
-    font-family: var(--font-hand);
+    font-family: var(--font-note, var(--font-main));
     text-shadow: 0 0 20px rgba(208, 76, 49, 0.15);
 }
 
@@ -137,7 +137,7 @@
     color: var(--text-primary);
     font-size: 2rem;
     margin-bottom: 2.5rem;
-    font-family: var(--font-hand);
+    font-family: var(--font-note, var(--font-main));
     position: relative;
     padding-bottom: 1rem;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);

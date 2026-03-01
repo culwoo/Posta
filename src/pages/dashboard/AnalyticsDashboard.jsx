@@ -15,9 +15,51 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { getManagedEvents, getReservationsForEvents } from '../../utils/dashboardData';
 import { buildAnalyticsData } from '../../utils/analytics';
-import classes from './DashboardFeature.module.css';
+import GlassCard from '../../components/ui/GlassCard';
+import GlassButton from '../../components/ui/GlassButton';
 
 const won = (value) => `${Number(value || 0).toLocaleString()}원`;
+
+const glassSelectStyle = {
+    padding: '0.5rem 0.75rem',
+    background: 'var(--ui-surface-soft)',
+    border: '1px solid var(--ui-border-soft)',
+    borderTop: '1px solid var(--ui-border-strong)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--text-primary)',
+    fontSize: '0.9rem',
+    fontFamily: 'var(--font-main)',
+    cursor: 'pointer',
+    minWidth: 120,
+};
+
+const chartTooltipStyle = {
+    backgroundColor: 'rgba(12, 16, 34, 0.92)',
+    border: '1px solid var(--ui-border-strong)',
+    borderRadius: '10px',
+    color: 'var(--text-primary)',
+    fontSize: '0.85rem',
+    fontFamily: 'var(--font-main)',
+    boxShadow: '0 10px 24px rgba(0, 0, 0, 0.28)',
+};
+
+const chartTooltipLabelStyle = {
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-main)',
+    fontWeight: 600,
+};
+
+const chartTooltipItemStyle = {
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-main)',
+    fontWeight: 600,
+};
+
+const chartAxisTickStyle = {
+    fill: 'var(--text-secondary)',
+    fontSize: 12,
+    fontFamily: 'var(--font-main)',
+};
 
 const AnalyticsDashboard = () => {
     const { user } = useAuth();
@@ -61,17 +103,37 @@ const AnalyticsDashboard = () => {
         [analytics.topEvents]
     );
 
+    const kpiItems = [
+        { label: '총 예약', value: `${analytics.summary.totalReservations.toLocaleString()}건` },
+        { label: '결제 완료', value: `${analytics.summary.paidReservationCount.toLocaleString()}건` },
+        { label: '판매 티켓 수', value: `${analytics.summary.soldTickets.toLocaleString()}장` },
+        { label: '예상 매출', value: won(analytics.summary.estimatedRevenue) },
+        { label: '체크인 완료', value: `${analytics.summary.checkedInCount.toLocaleString()}건` },
+        { label: '체크인율', value: `${analytics.summary.checkinRate.toFixed(1)}%` },
+    ];
+
     return (
-        <div className={classes.page}>
-            <div className={classes.headerRow}>
-                <div className={classes.titleBlock}>
-                    <h2>정산 / 인사이트</h2>
-                    <p>결제 완료/체크인/매출 지표를 이벤트 운영 관점에서 확인합니다.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div>
+                    <h2 style={{
+                        margin: 0,
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                        letterSpacing: '-0.02em',
+                        fontFamily: 'var(--font-main)',
+                        color: 'var(--text-primary)',
+                    }}>
+                        정산 / 인사이트
+                    </h2>
+                    <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.9rem', fontFamily: 'var(--font-main)' }}>
+                        결제 완료/체크인/매출 지표를 이벤트 운영 관점에서 확인합니다.
+                    </p>
                 </div>
-                <div className={classes.actionRow}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <select
-                        className={classes.select}
-                        style={{ minWidth: 120 }}
+                        style={glassSelectStyle}
                         value={monthRange}
                         onChange={(e) => setMonthRange(Number(e.target.value))}
                     >
@@ -79,113 +141,170 @@ const AnalyticsDashboard = () => {
                         <option value={6}>최근 6개월</option>
                         <option value={12}>최근 12개월</option>
                     </select>
-                    <button className={classes.btnSecondary} onClick={loadData}>
+                    <GlassButton variant="secondary" size="sm" onClick={loadData}>
                         <RefreshCcw size={15} /> 새로고침
-                    </button>
+                    </GlassButton>
                 </div>
             </div>
 
-            {error && <div className={classes.error}>{error}</div>}
+            {error && (
+                <div style={{
+                    background: 'rgba(255, 71, 87, 0.08)',
+                    color: '#ff6b6b',
+                    border: '1px solid rgba(255, 71, 87, 0.15)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem',
+                    fontFamily: 'var(--font-main)',
+                    fontSize: '0.9rem',
+                }}>
+                    {error}
+                </div>
+            )}
 
-            <div className={classes.cardGrid}>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>총 예약</div>
-                    <div className={classes.kpiValue}>{analytics.summary.totalReservations.toLocaleString()}건</div>
-                </div>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>결제 완료</div>
-                    <div className={classes.kpiValue}>{analytics.summary.paidReservationCount.toLocaleString()}건</div>
-                </div>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>판매 티켓 수</div>
-                    <div className={classes.kpiValue}>{analytics.summary.soldTickets.toLocaleString()}장</div>
-                </div>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>예상 매출</div>
-                    <div className={classes.kpiValue}>{won(analytics.summary.estimatedRevenue)}</div>
-                </div>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>체크인 완료</div>
-                    <div className={classes.kpiValue}>{analytics.summary.checkedInCount.toLocaleString()}건</div>
-                </div>
-                <div className={classes.kpiCard}>
-                    <div className={classes.kpiLabel}>체크인율</div>
-                    <div className={classes.kpiValue}>{analytics.summary.checkinRate.toFixed(1)}%</div>
-                </div>
+            {/* KPI Cards */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '0.75rem',
+            }}>
+                {kpiItems.map(({ label, value }) => (
+                    <GlassCard key={label} level={2} hover style={{ padding: '1.1rem' }}>
+                        <div style={{
+                            color: 'var(--text-tertiary)',
+                            fontSize: '0.78rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontFamily: 'var(--font-main)',
+                            fontWeight: 500,
+                        }}>
+                            {label}
+                        </div>
+                        <div style={{
+                            marginTop: '0.3rem',
+                            color: 'var(--text-primary)',
+                            fontSize: '1.4rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-main)',
+                            letterSpacing: '-0.02em',
+                        }}>
+                            {value}
+                        </div>
+                    </GlassCard>
+                ))}
             </div>
 
-            <div className={classes.panel}>
-                <h3 className={classes.panelTitle}>월별 매출 추이</h3>
-                <p className={classes.panelHint}>결제 완료된 예약만 매출에 반영합니다.</p>
-                <div className={classes.chartWrap}>
+            {/* Monthly Revenue Chart */}
+            <GlassCard level={1} style={{ padding: '1.2rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, fontFamily: 'var(--font-main)', letterSpacing: '-0.02em' }}>
+                    월별 매출 추이
+                </h3>
+                <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.82rem', fontFamily: 'var(--font-main)' }}>
+                    결제 완료된 예약만 매출에 반영합니다.
+                </p>
+                <div style={{ width: '100%', height: '280px', marginTop: '0.8rem' }}>
                     {loading ? (
-                        <div className={classes.loading}>불러오는 중...</div>
+                        <div style={{ color: 'var(--text-tertiary)', padding: '0.8rem 0', fontFamily: 'var(--font-main)' }}>불러오는 중...</div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={analytics.monthly}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="monthLabel" />
-                                <YAxis />
-                                <Tooltip formatter={(value) => won(value)} />
-                                <Legend />
-                                <Line
-                                    type="monotone"
-                                    dataKey="revenue"
-                                    stroke="#d04c31"
-                                    strokeWidth={2}
-                                    name="매출"
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--ui-border-soft)" />
+                                <XAxis dataKey="monthLabel" stroke="var(--ui-text-muted)" tick={chartAxisTickStyle} />
+                                <YAxis stroke="var(--ui-text-muted)" tick={chartAxisTickStyle} />
+                                <Tooltip
+                                    formatter={(value) => won(value)}
+                                    contentStyle={chartTooltipStyle}
+                                    labelStyle={chartTooltipLabelStyle}
+                                    itemStyle={chartTooltipItemStyle}
+                                    cursor={{ stroke: 'rgba(240, 240, 245, 0.25)', strokeWidth: 1 }}
                                 />
+                                <Legend wrapperStyle={{ fontFamily: 'var(--font-main)', fontSize: '0.85rem' }} />
+                                <Line type="monotone" dataKey="revenue" stroke="#d04c31" strokeWidth={2} name="매출" dot={{ fill: '#d04c31', r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     )}
                 </div>
-            </div>
+            </GlassCard>
 
-            <div className={classes.split}>
-                <div className={classes.panel}>
-                    <h3 className={classes.panelTitle}>월별 예매(건/매수)</h3>
-                    <p className={classes.panelHint}>결제 완료 예약 기준 건수와 매수입니다.</p>
-                    <div className={classes.chartWrap}>
+            {/* Split Charts */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.8rem' }} className="analytics-split">
+                <GlassCard level={1} style={{ padding: '1.2rem' }}>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, fontFamily: 'var(--font-main)', letterSpacing: '-0.02em' }}>
+                        월별 예매(건/매수)
+                    </h3>
+                    <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.82rem', fontFamily: 'var(--font-main)' }}>
+                        결제 완료 예약 기준 건수와 매수입니다.
+                    </p>
+                    <div style={{ width: '100%', height: '280px', marginTop: '0.8rem' }}>
                         {loading ? (
-                            <div className={classes.loading}>불러오는 중...</div>
+                            <div style={{ color: 'var(--text-tertiary)', padding: '0.8rem 0', fontFamily: 'var(--font-main)' }}>불러오는 중...</div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={analytics.monthly}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="monthLabel" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="reservationCount" fill="#2563eb" name="예매 건수" />
-                                    <Bar dataKey="soldTickets" fill="#16a34a" name="판매 매수" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--ui-border-soft)" />
+                                    <XAxis dataKey="monthLabel" stroke="var(--ui-text-muted)" tick={chartAxisTickStyle} />
+                                    <YAxis stroke="var(--ui-text-muted)" tick={chartAxisTickStyle} />
+                                    <Tooltip
+                                        contentStyle={chartTooltipStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        cursor={{ fill: 'rgba(255, 255, 255, 0.08)' }}
+                                    />
+                                    <Legend wrapperStyle={{ fontFamily: 'var(--font-main)', fontSize: '0.85rem' }} />
+                                    <Bar dataKey="reservationCount" fill="#2563eb" name="예매 건수" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="soldTickets" fill="#16a34a" name="판매 매수" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
                     </div>
-                </div>
+                </GlassCard>
 
-                <div className={classes.panel}>
-                    <h3 className={classes.panelTitle}>이벤트별 매출 Top 5</h3>
-                    <p className={classes.panelHint}>결제 완료 예약만 반영한 추정 매출입니다.</p>
-                    <div className={classes.chartWrap}>
+                <GlassCard level={1} style={{ padding: '1.2rem' }}>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, fontFamily: 'var(--font-main)', letterSpacing: '-0.02em' }}>
+                        이벤트별 매출 Top 5
+                    </h3>
+                    <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.82rem', fontFamily: 'var(--font-main)' }}>
+                        결제 완료 예약만 반영한 추정 매출입니다.
+                    </p>
+                    <div style={{ width: '100%', height: '280px', marginTop: '0.8rem' }}>
                         {loading ? (
-                            <div className={classes.loading}>불러오는 중...</div>
+                            <div style={{ color: 'var(--text-tertiary)', padding: '0.8rem 0', fontFamily: 'var(--font-main)' }}>불러오는 중...</div>
                         ) : topEventsChartData.length === 0 ? (
-                            <div className={classes.empty}>집계할 데이터가 없습니다.</div>
+                            <div style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '1.1rem', fontFamily: 'var(--font-main)' }}>
+                                집계할 데이터가 없습니다.
+                            </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={topEventsChartData} layout="vertical" margin={{ left: 12 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis dataKey="name" type="category" width={110} />
-                                    <Tooltip formatter={(value) => won(value)} />
-                                    <Bar dataKey="revenue" fill="#f59e0b" name="매출" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--ui-border-soft)" />
+                                    <XAxis type="number" stroke="var(--ui-text-muted)" tick={chartAxisTickStyle} />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        width={132}
+                                        tickMargin={8}
+                                        stroke="var(--ui-text-muted)"
+                                        tick={chartAxisTickStyle}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [won(value), '매출']}
+                                        contentStyle={chartTooltipStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        cursor={{ fill: 'rgba(255, 255, 255, 0.08)' }}
+                                    />
+                                    <Bar dataKey="revenue" fill="#f59e0b" name="매출" radius={[0, 4, 4, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
                     </div>
-                </div>
+                </GlassCard>
             </div>
+
+            <style>{`
+                @media (max-width: 900px) {
+                    .analytics-split { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     db,
     functions,
@@ -253,6 +253,37 @@ const Admin = () => {
         (r.phone && r.phone.includes(searchTerm))
     );
 
+    // 마우스 드래그 가로 스크롤
+    const dragScrollRef = useRef(null);
+    const dragState = useRef({ isDown: false, startX: 0, scrollLeft: 0 });
+
+    const handleMouseDown = useCallback((e) => {
+        const el = dragScrollRef.current;
+        if (!el) return;
+        dragState.current = { isDown: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+        el.style.cursor = 'grabbing';
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+        dragState.current.isDown = false;
+        if (dragScrollRef.current) dragScrollRef.current.style.cursor = '';
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        dragState.current.isDown = false;
+        if (dragScrollRef.current) dragScrollRef.current.style.cursor = '';
+    }, []);
+
+    const handleMouseMove = useCallback((e) => {
+        if (!dragState.current.isDown) return;
+        e.preventDefault();
+        const el = dragScrollRef.current;
+        if (!el) return;
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - dragState.current.startX) * 1.5;
+        el.scrollLeft = dragState.current.scrollLeft - walk;
+    }, []);
+
     return (
         <div className={classes.container}>
             <AIProgressTimer
@@ -333,7 +364,14 @@ const Admin = () => {
                         />
                     </div>
 
-                    <div className={classes.listContainer}>
+                    <div
+                        className={classes.listContainer}
+                        ref={dragScrollRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseLeave={handleMouseLeave}
+                        onMouseUp={handleMouseUp}
+                        onMouseMove={handleMouseMove}
+                    >
                         <table className={classes.table}>
                             <thead>
                                 <tr>
@@ -573,12 +611,12 @@ const Admin = () => {
                     <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#333' }}>팀원 초대 링크 발급</h4>
                         <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.8rem', wordBreak: 'keep-all' }}>아래 링크를 복사하여 초대할 팀원(입장 확인, 명단 관리 스태프)에게 공유해주세요. 링크를 통해 가입하면 자동으로 공연진 권한이 부여됩니다.</p>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <input
                                 type="text"
                                 readOnly
                                 value={`${window.location.origin}/e/${eventId}/performer/login`}
-                                style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#fff', color: '#555' }}
+                                style={{ flex: 1, minWidth: 0, padding: '0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#fff', color: '#555' }}
                             />
                             <button
                                 onClick={() => {

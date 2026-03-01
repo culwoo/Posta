@@ -1,10 +1,10 @@
-/* ===== Onsite Page: Glassmorphism ===== */
+﻿/* ===== Onsite Page: Glassmorphism ===== */
 .container {
     padding: 2rem;
     max-width: 500px;
     margin: 0 auto;
     text-align: center;
-    font-family: 'Gamja Flower', cursive;
+    font-family: var(--font-main);
 }
 
 .title {

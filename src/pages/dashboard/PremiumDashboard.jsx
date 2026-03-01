@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Crown, Check, Zap, Palette, Users, Shield } from 'lucide-react';
-import classes from './DashboardFeature.module.css';
+import { Crown, Check, Zap, Users, Shield, Palette } from 'lucide-react';
+import GlassCard from '../../components/ui/GlassCard';
+import GlassButton from '../../components/ui/GlassButton';
 
 const plans = [
     {
@@ -62,53 +63,81 @@ const PremiumDashboard = () => {
     const currentTier = user?.tier || 'free';
 
     return (
-        <div className={classes.page}>
-            <div className={classes.headerRow}>
-                <div className={classes.titleBlock}>
-                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Crown size={22} style={{ color: '#7c3aed' }} /> 프리미엄 플랜
-                    </h2>
-                    <p>더 강력한 기능으로 이벤트를 성장시키세요.</p>
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+            {/* Header */}
+            <div>
+                <h2 style={{
+                    margin: 0,
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    fontFamily: 'var(--font-main)',
+                    color: 'var(--text-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                }}>
+                    <Crown size={22} style={{ color: '#7c3aed' }} /> 프리미엄 플랜
+                </h2>
+                <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.9rem', fontFamily: 'var(--font-main)' }}>
+                    더 강력한 기능으로 이벤트를 성장시키세요.
+                </p>
             </div>
 
             {/* Current Tier Badge */}
-            <div className={classes.panel} style={{
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                background: currentTier !== 'free' ? 'linear-gradient(135deg, #ede9fe 0%, #faf5ff 100%)' : undefined
-            }}>
-                <Shield size={20} style={{ color: currentTier !== 'free' ? '#7c3aed' : '#6b7280' }} />
+            <GlassCard
+                level={1}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '1rem 1.2rem',
+                    background: currentTier !== 'free'
+                        ? 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0.04) 100%)'
+                        : undefined,
+                    borderColor: currentTier !== 'free' ? 'rgba(124,58,237,0.25)' : undefined,
+                }}
+            >
+                <Shield size={20} style={{ color: currentTier !== 'free' ? '#7c3aed' : 'var(--text-tertiary)', flexShrink: 0 }} />
                 <div>
-                    <div style={{ fontWeight: 700, color: '#111827' }}>
+                    <div style={{
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        fontFamily: 'var(--font-main)',
+                        fontSize: '0.95rem',
+                    }}>
                         현재 플랜: <span style={{
-                            color: currentTier === 'premium' ? '#7c3aed' : currentTier === 'pro' ? '#f59e0b' : '#6b7280',
+                            color: currentTier === 'premium' ? '#7c3aed' : currentTier === 'pro' ? '#f59e0b' : 'var(--text-tertiary)',
                             textTransform: 'uppercase'
                         }}>{currentTier}</span>
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-main)', marginTop: '0.1rem' }}>
                         {currentTier === 'free' ? '업그레이드하여 모든 기능을 잠금 해제하세요.' : '프리미엄 혜택을 즐기고 계십니다.'}
                     </div>
                 </div>
-            </div>
+            </GlassCard>
 
             {/* Plans Grid */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                 gap: '1rem',
-                marginTop: '0.5rem'
             }}>
                 {plans.map((plan) => {
                     const isCurrentPlan = plan.id === currentTier;
                     return (
-                        <div
+                        <GlassCard
                             key={plan.id}
-                            className={classes.panel}
+                            level={plan.highlight ? 3 : 2}
                             style={{
-                                border: plan.highlight ? `2px solid ${plan.color}` : undefined,
+                                padding: '1.5rem',
                                 position: 'relative',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                ...(plan.highlight ? {
+                                    border: `2px solid ${plan.color}`,
+                                    boxShadow: `0 0 30px rgba(124,58,237,0.15), inset 0 1px 0 var(--ui-border-soft), 0 20px 60px var(--ui-scrim)`,
+                                } : {}),
                             }}
                         >
                             {plan.highlight && (
@@ -117,65 +146,114 @@ const PremiumDashboard = () => {
                                     top: '-12px',
                                     left: '50%',
                                     transform: 'translateX(-50%)',
-                                    background: plan.color,
-                                    color: '#fff',
-                                    padding: '2px 14px',
+                                    background: `linear-gradient(135deg, ${plan.color}, #a78bfa)`,
+                                    color: 'var(--text-on-primary)',
+                                    padding: '3px 14px',
                                     borderRadius: '999px',
-                                    fontSize: '0.75rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: 800,
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'nowrap',
+                                    fontFamily: 'var(--font-main)',
+                                    letterSpacing: '-0.01em',
                                 }}>
                                     가장 인기 있는 플랜
                                 </div>
                             )}
 
                             <div style={{ marginBottom: '0.75rem' }}>
-                                <h3 style={{ margin: 0, color: plan.color, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <h3 style={{
+                                    margin: 0,
+                                    color: plan.color,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    fontFamily: 'var(--font-main)',
+                                    fontWeight: 700,
+                                    fontSize: '1.1rem',
+                                    letterSpacing: '-0.02em',
+                                }}>
                                     {plan.id === 'premium' && <Zap size={16} />}
                                     {plan.id === 'pro' && <Crown size={16} />}
                                     {plan.id === 'free' && <Users size={16} />}
                                     {plan.name}
                                 </h3>
-                                <p className={classes.panelHint} style={{ marginTop: '0.25rem' }}>{plan.description}</p>
+                                <p style={{
+                                    margin: '0.25rem 0 0',
+                                    color: 'var(--text-tertiary)',
+                                    fontSize: '0.82rem',
+                                    fontFamily: 'var(--font-main)',
+                                }}>
+                                    {plan.description}
+                                </p>
                             </div>
 
-                            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#111827', marginBottom: '0.25rem' }}>
+                            <div style={{
+                                fontSize: '1.8rem',
+                                fontWeight: 800,
+                                color: 'var(--text-primary)',
+                                marginBottom: '0.25rem',
+                                fontFamily: 'var(--font-main)',
+                                letterSpacing: '-0.03em',
+                            }}>
                                 {plan.price}
-                                <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#6b7280' }}>{plan.period}</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-tertiary)' }}>{plan.period}</span>
                             </div>
 
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.75rem 0' }}>
                                 {plan.features.map((feature, idx) => (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: '#374151' }}>
+                                    <div key={idx} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--text-secondary)',
+                                        fontFamily: 'var(--font-main)',
+                                    }}>
                                         <Check size={15} style={{ color: plan.color, flexShrink: 0 }} />
                                         {feature}
                                     </div>
                                 ))}
                             </div>
 
-                            <button
-                                className={isCurrentPlan ? classes.btnSecondary : classes.btnPrimary}
+                            <GlassButton
+                                variant={isCurrentPlan ? 'ghost' : 'primary'}
+                                size="md"
+                                disabled={isCurrentPlan}
                                 style={{
                                     width: '100%',
                                     marginTop: 'auto',
-                                    background: !isCurrentPlan ? plan.color : undefined,
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    ...(!isCurrentPlan ? {
+                                        background: `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
+                                        boxShadow: `0 4px 16px ${plan.color}40`,
+                                    } : {}),
                                 }}
-                                disabled={isCurrentPlan}
                             >
                                 {isCurrentPlan ? '현재 플랜' : '업그레이드'}
-                            </button>
-                        </div>
+                            </GlassButton>
+                        </GlassCard>
                     );
                 })}
             </div>
 
             {/* Premium Features Showcase */}
-            <div className={classes.panel} style={{ marginTop: '0.5rem' }}>
-                <h3 className={classes.panelTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <GlassCard level={1} style={{ padding: '1.5rem' }}>
+                <h3 style={{
+                    margin: 0,
+                    color: 'var(--text-primary)',
+                    fontSize: '1.05rem',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-main)',
+                    letterSpacing: '-0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                }}>
                     <Palette size={18} /> 프리미엄 전용 기능 미리보기
                 </h3>
-                <p className={classes.panelHint}>업그레이드 시 아래 기능들이 즉시 활성화됩니다.</p>
+                <p style={{ margin: '0.3rem 0 0', color: 'var(--text-tertiary)', fontSize: '0.82rem', fontFamily: 'var(--font-main)' }}>
+                    업그레이드 시 아래 기능들이 즉시 활성화됩니다.
+                </p>
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -188,21 +266,36 @@ const PremiumDashboard = () => {
                         { icon: '🚫', title: '광고 제거', desc: '이벤트 페이지와 대시보드에서 광고가 완전히 사라집니다.' },
                         { icon: '🔒', title: '수동 체크인', desc: 'QR 스캔 실패 시 예매번호/이름으로 수동 입장 처리가 가능합니다.' }
                     ].map((item, idx) => (
-                        <div key={idx} style={{
-                            background: '#f9fafb',
-                            borderRadius: '10px',
-                            padding: '0.85rem',
-                            border: '1px solid #e5e7eb'
-                        }}>
+                        <GlassCard key={idx} level={1} style={{ padding: '0.85rem' }}>
                             <div style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>{item.icon}</div>
-                            <div style={{ fontWeight: 700, color: '#111827', fontSize: '0.92rem' }}>{item.title}</div>
-                            <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: '0.2rem' }}>{item.desc}</div>
-                        </div>
+                            <div style={{
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                fontSize: '0.92rem',
+                                fontFamily: 'var(--font-main)',
+                            }}>
+                                {item.title}
+                            </div>
+                            <div style={{
+                                fontSize: '0.78rem',
+                                color: 'var(--text-tertiary)',
+                                marginTop: '0.2rem',
+                                fontFamily: 'var(--font-main)',
+                            }}>
+                                {item.desc}
+                            </div>
+                        </GlassCard>
                     ))}
                 </div>
-            </div>
+            </GlassCard>
 
-            <div className={classes.inlineNote} style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+            <div style={{
+                color: 'var(--text-tertiary)',
+                fontSize: '0.78rem',
+                fontFamily: 'var(--font-main)',
+                textAlign: 'center',
+                marginTop: '0.3rem',
+            }}>
                 결제 시스템은 정식 서비스 출시 후 활성화될 예정입니다. 현재는 플랜 미리보기만 제공됩니다.
             </div>
         </div>

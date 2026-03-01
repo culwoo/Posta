@@ -4,6 +4,9 @@ import Layout from './components/Layout';
 import AuthHandler from './components/AuthHandler';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import GlassBackground from './components/GlassBackground';
+import LandingPage from './pages/LandingPage';
 
 // Event Pages
 import Home from './pages/event/Home';
@@ -38,53 +41,56 @@ const EventProviderWrapper = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AuthHandler />
-        <Routes>
-          {/* Posta Dashboard Routes */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<EventList />} />
-            <Route path="create" element={<CreateEvent />} />
-            <Route path="event/:eventId" element={<ManageEvent />} />
-            <Route path="audience" element={<AudienceDashboard />} />
-            <Route path="analytics" element={<AnalyticsDashboard />} />
-            <Route path="settings" element={<SettingsDashboard />} />
-            <Route path="premium" element={<PremiumDashboard />} />
-            <Route path="more" element={<MoreDashboard />} />
-          </Route>
+      <ThemeProvider>
+        <GlassBackground />
+        <AuthProvider>
+          <AuthHandler />
+          <Routes>
+            {/* Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<EventList />} />
+              <Route path="create" element={<CreateEvent />} />
+              <Route path="event/:eventId" element={<ManageEvent />} />
+              <Route path="audience" element={<AudienceDashboard />} />
+              <Route path="analytics" element={<AnalyticsDashboard />} />
+              <Route path="settings" element={<SettingsDashboard />} />
+              <Route path="premium" element={<PremiumDashboard />} />
+              <Route path="more" element={<MoreDashboard />} />
+            </Route>
 
-          {/* Posta Event Site Routes - /e/ prefix for clean, short URLs */}
-          <Route path="/e/:eventId" element={
-            <EventProviderWrapper>
-              <Layout />
-            </EventProviderWrapper>
-          }>
-            <Route index element={<Home />} />
-            <Route path="info" element={<ConcertInfo />} />
-            <Route path="board" element={<Board />} />
-            <Route path="reserve" element={<Reservation />} />
-            <Route path="onsite" element={<Onsite />} />
-            <Route path="performer/login" element={<PerformerAuth />} />
-            <Route
-              path="admin"
-              element={(
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              )}
-            />
-            <Route
-              path="checkin"
-              element={(
-                <ProtectedRoute>
-                  <Checkin />
-                </ProtectedRoute>
-              )}
-            />
-          </Route>
-        </Routes>
-      </AuthProvider>
+            {/* Posta Event Site Routes - /e/ prefix for clean, short URLs */}
+            <Route path="/e/:eventId" element={
+              <EventProviderWrapper>
+                <Layout />
+              </EventProviderWrapper>
+            }>
+              <Route index element={<Home />} />
+              <Route path="info" element={<ConcertInfo />} />
+              <Route path="board" element={<Board />} />
+              <Route path="reserve" element={<Reservation />} />
+              <Route path="onsite" element={<Onsite />} />
+              <Route path="performer/login" element={<PerformerAuth />} />
+              <Route
+                path="admin"
+                element={(
+                  <ProtectedRoute>
+                    <Admin />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="checkin"
+                element={(
+                  <ProtectedRoute>
+                    <Checkin />
+                  </ProtectedRoute>
+                )}
+              />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

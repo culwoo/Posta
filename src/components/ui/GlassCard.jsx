@@ -17,29 +17,36 @@ const GlassCard = React.forwardRef(function GlassCard(
   { level = 1, hover = false, className = '', style = {}, children, ...rest },
   ref,
 ) {
+  const supportsBackdrop =
+    typeof CSS !== 'undefined'
+    && (
+      CSS.supports('backdrop-filter: blur(1px)')
+      || CSS.supports('-webkit-backdrop-filter: blur(1px)')
+    );
+
   const levelStyles = {
     1: {
-      background: 'var(--glass-1-bg)',
+      background: supportsBackdrop ? 'var(--glass-1-bg)' : 'var(--glass-1-bg-fallback)',
       border: '1px solid var(--glass-1-border)',
       borderTop: '1px solid var(--glass-1-border-top)',
-      backdropFilter: 'var(--glass-1-blur)',
-      WebkitBackdropFilter: 'var(--glass-1-blur)',
+      backdropFilter: supportsBackdrop ? 'var(--glass-1-blur)' : 'none',
+      WebkitBackdropFilter: supportsBackdrop ? 'var(--glass-1-blur)' : 'none',
       boxShadow: 'var(--glass-1-shadow)',
     },
     2: {
-      background: 'var(--glass-2-bg)',
+      background: supportsBackdrop ? 'var(--glass-2-bg)' : 'var(--glass-2-bg-fallback)',
       border: '1px solid var(--glass-2-border)',
       borderTop: '1px solid var(--glass-2-border-top)',
-      backdropFilter: 'var(--glass-2-blur)',
-      WebkitBackdropFilter: 'var(--glass-2-blur)',
+      backdropFilter: supportsBackdrop ? 'var(--glass-2-blur)' : 'none',
+      WebkitBackdropFilter: supportsBackdrop ? 'var(--glass-2-blur)' : 'none',
       boxShadow: 'var(--glass-2-shadow)',
     },
     3: {
-      background: 'var(--glass-3-bg)',
+      background: supportsBackdrop ? 'var(--glass-3-bg)' : 'var(--glass-3-bg-fallback)',
       border: '1px solid var(--glass-3-border)',
       borderTop: '1px solid var(--glass-3-border-top)',
-      backdropFilter: 'var(--glass-3-blur)',
-      WebkitBackdropFilter: 'var(--glass-3-blur)',
+      backdropFilter: supportsBackdrop ? 'var(--glass-3-blur)' : 'none',
+      WebkitBackdropFilter: supportsBackdrop ? 'var(--glass-3-blur)' : 'none',
       boxShadow: 'var(--glass-3-shadow)',
     },
   };

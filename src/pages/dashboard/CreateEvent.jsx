@@ -1,7 +1,34 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { db, doc, getDoc, writeBatch } from '../../api/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { ArrowLeft } from 'lucide-react';
+import GlassCard from '../../components/ui/GlassCard';
+import GlassButton from '../../components/ui/GlassButton';
+
+const glassInputStyle = {
+    width: '100%',
+    padding: '0.7rem 0.9rem',
+    background: 'var(--ui-surface-soft)',
+    border: '1px solid var(--ui-border-soft)',
+    borderTop: '1px solid var(--ui-border-strong)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--text-primary)',
+    fontSize: '0.95rem',
+    fontFamily: 'var(--font-main)',
+    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+    boxSizing: 'border-box',
+};
+
+const labelStyle = {
+    display: 'block',
+    marginBottom: '0.5rem',
+    fontWeight: 500,
+    fontSize: '0.9rem',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-main)',
+    letterSpacing: '-0.01em',
+};
 
 const CreateEvent = () => {
     const { user } = useAuth();
@@ -61,7 +88,6 @@ const CreateEvent = () => {
 
             const batch = writeBatch(db);
 
-            // Create minimal event doc
             batch.set(eventRef, {
                 title,
                 date,
@@ -70,10 +96,9 @@ const CreateEvent = () => {
                 createdAt: new Date().toISOString(),
                 isReservationClosed: false,
                 payment: defaultPayment,
-                theme: { primary: '#000000', secondary: '#ffffff' } // Default theme
+                theme: { primary: '#000000', secondary: '#ffffff' }
             });
 
-            // Auto mapping: Add to user's myEvents subcollection
             batch.set(doc(db, "users", user.uid, "myEvents", finalSlug), {
                 eventId: finalSlug,
                 role: 'organizer',
@@ -82,7 +107,6 @@ const CreateEvent = () => {
 
             await batch.commit();
 
-            // Redirect to dashboard after creation
             alert(`이벤트 "${title}" 생성 완료!\n주소: /e/${finalSlug}`);
             navigate('/dashboard');
         } catch (error) {
@@ -95,48 +119,83 @@ const CreateEvent = () => {
 
     return (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2>새 이벤트 만들기</h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: '#fff', padding: '2rem', borderRadius: '8px', border: '1px solid #eee' }}>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>이벤트 제목</label>
-                    <input
-                        type="text" value={title} onChange={e => setTitle(e.target.value)} required
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    />
-                </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>고유 주소 (URL Slug) *중요</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#666' }}>posta.com/e/</span>
+            <Link
+                to="/dashboard"
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--text-secondary)',
+                    textDecoration: 'none',
+                    marginBottom: '1.5rem',
+                    fontFamily: 'var(--font-main)',
+                    fontSize: '0.9rem',
+                }}
+            >
+                <ArrowLeft size={16} /> 목록으로 돌아가기
+            </Link>
+
+            <h2 style={{
+                margin: '0 0 1.5rem 0',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+                fontFamily: 'var(--font-main)',
+                color: 'var(--text-primary)',
+            }}>
+                새 이벤트 만들기
+            </h2>
+
+            <GlassCard level={1} style={{ padding: '2rem' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div>
+                        <label style={labelStyle}>이벤트 제목</label>
                         <input
-                            type="text" value={slug} onChange={e => setSlug(e.target.value)} required
-                            placeholder="my-cool-band-2026"
-                            style={{ flex: 1, padding: '0.5rem' }}
+                            type="text" value={title} onChange={e => setTitle(e.target.value)} required
+                            style={glassInputStyle}
+                            placeholder="공연 제목을 입력하세요"
                         />
                     </div>
-                    <small style={{ color: '#888', marginTop: '0.3rem', display: 'block' }}>영문 소문자, 숫자, 하이픈(-)만 가능하며 생성 후 변경할 수 없습니다.</small>
-                </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>날짜 (예: 2026-01-31)</label>
-                    <input
-                        type="date" value={date} onChange={e => setDate(e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    />
-                </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>장소</label>
-                    <input
-                        type="text" value={location} onChange={e => setLocation(e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    />
-                </div>
-                <button
-                    type="submit" disabled={loading}
-                    style={{ padding: '0.8rem', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                    {loading ? '생성 중...' : '이벤트 생성'}
-                </button>
-            </form>
+                    <div>
+                        <label style={{ ...labelStyle, fontWeight: 600 }}>고유 주소 (URL Slug)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-main)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>posta.systems/e/</span>
+                            <input
+                                type="text" value={slug} onChange={e => setSlug(e.target.value)} required
+                                placeholder="my-cool-band-2026"
+                                style={{ ...glassInputStyle, flex: 1 }}
+                            />
+                        </div>
+                        <small style={{ color: 'var(--text-tertiary)', marginTop: '0.4rem', display: 'block', fontSize: '0.8rem', fontFamily: 'var(--font-main)' }}>
+                            영문 소문자, 숫자, 하이픈(-)만 가능하며 생성 후 변경할 수 없습니다.
+                        </small>
+                    </div>
+                    <div>
+                        <label style={labelStyle}>날짜</label>
+                        <input
+                            type="date" value={date} onChange={e => setDate(e.target.value)}
+                            style={glassInputStyle}
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>장소</label>
+                        <input
+                            type="text" value={location} onChange={e => setLocation(e.target.value)}
+                            style={glassInputStyle}
+                            placeholder="공연 장소를 입력하세요"
+                        />
+                    </div>
+                    <GlassButton
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        disabled={loading}
+                        style={{ width: '100%', marginTop: '0.5rem' }}
+                    >
+                        {loading ? '생성 중...' : '이벤트 생성'}
+                    </GlassButton>
+                </form>
+            </GlassCard>
         </div>
     );
 };

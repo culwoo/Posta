@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { db, doc, onSnapshot, collection, query, where, getDocs, limit } from '../api/firebase';
 
 const EventContext = createContext();
+const PRETENDARD_STACK = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 export const useEvent = () => useContext(EventContext);
 
@@ -92,6 +93,8 @@ export const EventProvider = ({ children }) => {
                 root.style.setProperty('--text-light', themeData.textPrimary); // Fallback
             }
             if (themeData.accent) root.style.setProperty('--accent-color', themeData.accent);
+            root.style.setProperty('--font-main', themeData.fontMain || PRETENDARD_STACK);
+            root.style.setProperty('--font-note', themeData.fontNote || themeData.fontMain || PRETENDARD_STACK);
         };
 
         // 1. Storage-based instant preview (for FOUC prevention in editor)
@@ -109,6 +112,9 @@ export const EventProvider = ({ children }) => {
         const handleMessage = (e) => {
             if (e.data?.type === 'previewThemeUpdate' && e.data?.theme) {
                 setCSSVariables(e.data.theme);
+            }
+            if (e.data?.type === 'previewPosterUpdate' && e.data?.posterUrl) {
+                setEventData(prev => prev ? { ...prev, posterUrl: e.data.posterUrl } : prev);
             }
         };
         window.addEventListener('message', handleMessage);
