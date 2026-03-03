@@ -21,11 +21,12 @@ import { AD_SLOTS } from '../config/adsense';
  *   showAd    - Google 광고 슬롯 표시 여부 (default: true)
  */
 const AdBanner = ({ placement = 'dashboard', style = {}, showPromo = true, showAd = true }) => {
-    const { user } = useAuth();
+    const { user, accountPremium } = useAuth();
     const [dismissed, setDismissed] = React.useState(false);
 
-    // Premium users: never show ads
+    // Premium users: never show ads (legacy check + new account premium check)
     if (user?.isPremium) return null;
+    if (accountPremium?.active && accountPremium?.features?.adFree) return null;
 
     // 광고 슬롯 매핑
     const slotMap = {

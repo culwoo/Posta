@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { addDoc, collection, db, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp } from '../api/firebase';
+import { addDoc, collection, db, deleteDoc, doc, increment, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from '../api/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
 import { Trash2, X } from 'lucide-react';
@@ -71,6 +71,9 @@ const PostModal = ({ post, onClose }) => {
                 createdAt: serverTimestamp()
             });
             setNewComment('');
+            updateDoc(doc(db, 'events', eventId, 'posts', post.id), {
+                commentCount: increment(1)
+            }).catch((err) => console.warn('commentCount update failed:', err));
         } catch (error) {
             console.error('Error adding comment:', error);
             alert('댓글 등록에 실패했습니다.');
@@ -84,6 +87,9 @@ const PostModal = ({ post, onClose }) => {
         if (!eventId) return;
         try {
             await deleteDoc(doc(db, 'events', eventId, 'posts', post.id, 'comments', commentId));
+            updateDoc(doc(db, 'events', eventId, 'posts', post.id), {
+                commentCount: increment(-1)
+            }).catch((err) => console.warn('commentCount update failed:', err));
         } catch (error) {
             console.error('Error deleting comment:', error);
             alert('댓글 삭제에 실패했습니다.');

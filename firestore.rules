@@ -87,8 +87,15 @@ service cloud.firestore {
 
         allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
 
-        allow update, delete: if signedIn() &&
+        allow delete: if signedIn() &&
           (resource.data.fromUid == request.auth.uid || isEventManager(eventId));
+
+        allow update: if signedIn() &&
+          (
+            resource.data.fromUid == request.auth.uid ||
+            isEventManager(eventId) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+          );
 
         match /comments/{commentId} {
           allow read: if canReadPost(eventId, postId);

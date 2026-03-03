@@ -3,12 +3,13 @@ import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-
 import classes from './Layout.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
+import { TierBadge } from './features/TierBadge';
 import GoogleAd from './GoogleAd';
 import { AD_SLOTS } from '../config/adsense';
 
 const Layout = () => {
     const { user, logout } = useAuth();
-    const { eventData } = useEvent();
+    const { eventData, billing } = useEvent();
     const navigate = useNavigate();
     const { eventId } = useParams();
 
@@ -141,7 +142,7 @@ const Layout = () => {
         <div className={classes.container}>
             <nav className={classes.navbar}>
                 <div className={classes.logo}>
-                    <Link to=".">🎵 {eventData?.title || '공연'}</Link>
+                    <Link to="." style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>🎵 {eventData?.title || '공연'} <TierBadge tier={billing?.tier} /></Link>
                 </div>
                 <div className={classes.navLinks} style={isReservePage ? { pointerEvents: 'none', opacity: 0.3 } : {}}>
                     <Link to="." className={classes.link}>홈</Link>

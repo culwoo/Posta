@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { LogOut, Home, BarChart2, Settings, User, Users, Menu, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
+import { PremiumBadge } from '../../components/features/PremiumBadge';
 
 const makeSidebarStyle = (collapsed) => ({
     width: collapsed ? '68px' : '250px',
@@ -44,7 +45,7 @@ const navItemActive = {
 };
 
 const DashboardLayout = () => {
-    const { user, loading, logout } = useAuth();
+    const { user, loading, logout, accountPremium } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();
     const currentPath = location.pathname;
@@ -197,6 +198,7 @@ const DashboardLayout = () => {
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {user?.name || 'User'}
                                 </span>
+                                <PremiumBadge active={accountPremium?.active} />
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: '0.5rem' }}>

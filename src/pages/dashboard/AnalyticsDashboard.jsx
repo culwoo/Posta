@@ -21,10 +21,9 @@ import GlassButton from '../../components/ui/GlassButton';
 const won = (value) => `${Number(value || 0).toLocaleString()}원`;
 
 const glassSelectStyle = {
-    padding: '0.5rem 0.75rem',
-    background: 'var(--ui-surface-soft)',
-    border: '1px solid var(--ui-border-soft)',
-    borderTop: '1px solid var(--ui-border-strong)',
+    padding: '0.5rem 2rem 0.5rem 0.75rem',
+    background: 'var(--select-bg)',
+    border: '1px solid var(--select-border)',
     borderRadius: 'var(--radius-md)',
     color: 'var(--text-primary)',
     fontSize: '0.9rem',
@@ -34,13 +33,15 @@ const glassSelectStyle = {
 };
 
 const chartTooltipStyle = {
-    backgroundColor: 'rgba(12, 16, 34, 0.92)',
+    backgroundColor: 'var(--tooltip-bg)',
     border: '1px solid var(--ui-border-strong)',
     borderRadius: '10px',
     color: 'var(--text-primary)',
     fontSize: '0.85rem',
     fontFamily: 'var(--font-main)',
-    boxShadow: '0 10px 24px rgba(0, 0, 0, 0.28)',
+    boxShadow: 'var(--dropdown-shadow)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
 };
 
 const chartTooltipLabelStyle = {
@@ -137,9 +138,9 @@ const AnalyticsDashboard = () => {
                         value={monthRange}
                         onChange={(e) => setMonthRange(Number(e.target.value))}
                     >
-                        <option value={3}>최근 3개월</option>
-                        <option value={6}>최근 6개월</option>
-                        <option value={12}>최근 12개월</option>
+                        <option value={3} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>최근 3개월</option>
+                        <option value={6} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>최근 6개월</option>
+                        <option value={12} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>최근 12개월</option>
                     </select>
                     <GlassButton variant="secondary" size="sm" onClick={loadData}>
                         <RefreshCcw size={15} /> 새로고침

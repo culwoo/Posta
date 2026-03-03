@@ -25,10 +25,9 @@ const formatDateTime = (value) => {
 
 const glassSelectStyle = {
     width: '100%',
-    padding: '0.55rem 0.75rem',
-    background: 'var(--ui-surface-soft)',
-    border: '1px solid var(--ui-border-soft)',
-    borderTop: '1px solid var(--ui-border-strong)',
+    padding: '0.55rem 2rem 0.55rem 0.75rem',
+    background: 'var(--select-bg)',
+    border: '1px solid var(--select-border)',
     borderRadius: 'var(--radius-md)',
     color: 'var(--text-primary)',
     fontSize: '0.9rem',
@@ -265,18 +264,18 @@ const AudienceDashboard = () => {
                 </p>
                 <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }} className="audience-filters">
                     <select style={glassSelectStyle} value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
-                        <option value="all">전체 이벤트</option>
+                        <option value="all" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>전체 이벤트</option>
                         {events.map((eventItem) => (
-                            <option key={eventItem.id} value={eventItem.id}>
+                            <option key={eventItem.id} value={eventItem.id} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>
                                 {eventItem.title || '제목 없음'}
                             </option>
                         ))}
                     </select>
                     <select style={glassSelectStyle} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        <option value="all">전체 상태</option>
-                        <option value="paid">결제완료</option>
-                        <option value="unpaid">미완료</option>
-                        <option value="checkedin">체크인완료</option>
+                        <option value="all" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>전체 상태</option>
+                        <option value="paid" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>결제완료</option>
+                        <option value="unpaid" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>미완료</option>
+                        <option value="checkedin" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>체크인완료</option>
                     </select>
                     <div style={{ position: 'relative' }}>
                         <Search size={16} style={{ position: 'absolute', top: 11, left: 10, color: 'var(--ui-text-muted)' }} />

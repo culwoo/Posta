@@ -1,7 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
-import { Zap, Users, BarChart3, ArrowRight, Ticket, Music, Shield } from 'lucide-react';
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import {
+    Zap, Users, BarChart3, ArrowRight, Ticket,
+    Menu, X, Upload, Share2, QrCode,
+    Sparkles, Clock, Globe, Crown, Check, Gift,
+    FileText, Banknote, ClipboardList, Repeat,
+    Star, CalendarDays, CheckCircle2, TrendingUp, Quote
+} from 'lucide-react';
 import './LandingPage.css';
 
 /* ── Animation variants ── */
@@ -23,8 +29,15 @@ const scaleIn = {
     }),
 };
 
+const staggerContainer = {
+    hidden: {},
+    visible: {
+        transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+    },
+};
+
 /* ── Scroll-triggered section wrapper ── */
-function RevealSection({ children, className = '', style }) {
+function RevealSection({ children, className = '', style, id }) {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: '-80px' });
 
@@ -33,6 +46,7 @@ function RevealSection({ children, className = '', style }) {
             ref={ref}
             className={className}
             style={style}
+            id={id}
             initial="hidden"
             animate={isInView ? 'visible' : 'hidden'}
             variants={fadeUp}
@@ -42,17 +56,53 @@ function RevealSection({ children, className = '', style }) {
     );
 }
 
+/* ── Smooth scroll helper ── */
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        const navHeight = 72;
+        const top = el.getBoundingClientRect().top + window.scrollY - navHeight;
+        window.scrollTo({ top, behavior: 'smooth' });
+    }
+}
+
 /* ═══════════════════════════════════════
    Landing Page
    ═══════════════════════════════════════ */
 export default function LandingPage() {
     const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState('hero');
 
+    /* ── Scroll tracking ── */
     useEffect(() => {
-        const onScroll = () => setScrolled(window.scrollY > 40);
+        const sections = ['hero', 'pain', 'features', 'how', 'showcase', 'testimonials', 'early-access'];
+        const onScroll = () => {
+            setScrolled(window.scrollY > 40);
+
+            const scrollPos = window.scrollY + 200;
+            for (let i = sections.length - 1; i >= 0; i--) {
+                const el = document.getElementById(sections[i]);
+                if (el && el.offsetTop <= scrollPos) {
+                    setActiveSection(sections[i]);
+                    break;
+                }
+            }
+        };
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    /* ── Lock body on mobile menu ── */
+    useEffect(() => {
+        document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [mobileMenuOpen]);
+
+    const handleNavClick = useCallback((id) => {
+        scrollToSection(id);
+        setMobileMenuOpen(false);
     }, []);
 
     const goToDashboard = () => navigate('/dashboard');
@@ -61,28 +111,109 @@ export default function LandingPage() {
         <div className="landing">
             {/* ─── Navbar ─── */}
             <nav className={`landing-nav${scrolled ? ' scrolled' : ''}`}>
-                <span className="nav-logo">Posta</span>
-                <div className="nav-links">
-                    <a href="#features" className="nav-link">기능</a>
-                    <a href="#how" className="nav-link">사용법</a>
+                <span
+                    className="nav-logo"
+                    onClick={() => scrollToSection('hero')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); scrollToSection('hero'); } }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="맨 위로 스크롤"
+                >
+                    Posta
+                </span>
+
+                <div className="nav-links desktop-only">
+                    <button
+                        className={`nav-link${activeSection === 'features' ? ' active' : ''}`}
+                        onClick={() => handleNavClick('features')}
+                    >
+                        기능
+                    </button>
+                    <button
+                        className={`nav-link${activeSection === 'how' ? ' active' : ''}`}
+                        onClick={() => handleNavClick('how')}
+                    >
+                        사용법
+                    </button>
+                    <button
+                        className={`nav-link${activeSection === 'early-access' ? ' active' : ''}`}
+                        onClick={() => handleNavClick('early-access')}
+                    >
+                        혜택
+                    </button>
                     <button className="nav-cta" onClick={goToDashboard}>
                         시작하기
                     </button>
                 </div>
+
+                {/* Mobile menu toggle */}
+                <button
+                    className="mobile-menu-toggle"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    aria-label="메뉴"
+                >
+                    {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                </button>
             </nav>
+
+            {/* ─── Mobile Menu Overlay ─── */}
+            <AnimatePresence>
+                {mobileMenuOpen && (
+                    <motion.div
+                        className="mobile-menu-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={() => setMobileMenuOpen(false)}
+                    >
+                        <motion.div
+                            className="mobile-menu glass-2"
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="mobile-menu-header">
+                                <span className="nav-logo">Posta</span>
+                            </div>
+                            <div className="mobile-menu-links">
+                                <button onClick={() => handleNavClick('features')}>기능</button>
+                                <button onClick={() => handleNavClick('how')}>사용법</button>
+                                <button onClick={() => handleNavClick('early-access')}>혜택</button>
+                            </div>
+                            <button className="mobile-menu-cta" onClick={() => { setMobileMenuOpen(false); goToDashboard(); }}>
+                                무료로 시작하기
+                                <ArrowRight size={18} />
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ─── Hero Section ─── */}
             <section className="hero landing-section" id="hero">
                 <div className="hero-glow" />
+                <div className="hero-grid-bg" />
+
+                {/* Floating orbit elements */}
+                <div className="hero-orbit">
+                    <div className="orbit-ring ring-1" />
+                    <div className="orbit-ring ring-2" />
+                    <div className="orbit-dot dot-1"><Ticket size={16} /></div>
+                    <div className="orbit-dot dot-2"><QrCode size={14} /></div>
+                    <div className="orbit-dot dot-3"><BarChart3 size={14} /></div>
+                </div>
 
                 <motion.div
                     className="hero-badge"
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
                 >
                     <span className="hero-badge-dot" />
-                    이벤트 관리의 새로운 기준
+                    공연 운영 자동화 플랫폼
                 </motion.div>
 
                 <motion.h1
@@ -91,9 +222,9 @@ export default function LandingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    공연을 더 특별하게,
+                    구글 폼과 종이 명단,
                     <br />
-                    <span className="hero-title-gradient">Posta</span>
+                    <span className="hero-title-gradient">이제 놓으세요.</span>
                 </motion.h1>
 
                 <motion.p
@@ -102,9 +233,9 @@ export default function LandingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    포스터 한 장이면 충분합니다.
+                    포스터 한 장이면 여러 공연의 예약, 입금 확인, 체크인까지 전부 자동.
                     <br />
-                    AI가 이벤트를 분석하고, 예약부터 체크인까지 모든 걸 자동으로.
+                    공연팀은 무대에만 집중하세요.
                 </motion.p>
 
                 <motion.div
@@ -114,91 +245,146 @@ export default function LandingPage() {
                     transition={{ duration: 0.7, delay: 0.75 }}
                 >
                     <button className="hero-btn-primary" onClick={goToDashboard}>
+                        <Sparkles size={18} />
                         무료로 시작하기
-                        <ArrowRight style={{ marginLeft: 8, width: 18, height: 18, verticalAlign: 'middle' }} />
+                        <ArrowRight size={18} />
                     </button>
-                    <a href="#features" className="hero-btn-secondary">
+                    <button className="hero-btn-secondary" onClick={() => scrollToSection('features')}>
                         자세히 알아보기
-                    </a>
+                    </button>
                 </motion.div>
 
-                {/* Stats */}
-                <motion.div
-                    className="stats-row"
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.95 }}
+                <div
+                    className="hero-scroll-hint"
+                    onClick={() => scrollToSection('features')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); scrollToSection('features'); } }}
+                    role="button"
+                    aria-label="기능 섹션으로 스크롤"
+                    tabIndex={0}
                 >
-                    <div className="stat-item">
-                        <div className="stat-value">500+</div>
-                        <div className="stat-label">이벤트 생성</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">2,000+</div>
-                        <div className="stat-label">예약 처리</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">99%</div>
-                        <div className="stat-label">만족도</div>
-                    </div>
-                </motion.div>
-
-                <div className="hero-scroll-hint">
                     <span>Scroll</span>
                     <div className="scroll-line" />
                 </div>
             </section>
+
+            {/* ─── Pain Points ─── */}
+            <RevealSection className="landing-section" id="pain">
+                <motion.div variants={fadeUp} custom={0} style={{ textAlign: 'center' }}>
+                    <span className="section-label" style={{ justifyContent: 'center' }}>
+                        <span className="section-label-line" />
+                        현실
+                    </span>
+                    <h2 className="section-title" style={{ textAlign: 'center' }}>
+                        혹시 지금도
+                        <br />
+                        <span className="text-gradient-primary">이렇게 운영하고 계신가요?</span>
+                    </h2>
+                </motion.div>
+
+                <motion.div className="pain-grid" variants={staggerContainer}>
+                    {[
+                        {
+                            icon: <Banknote size={22} />,
+                            title: '밤새 입금 대조',
+                            desc: '이름 세 글자뿐인 입금 내역과 구글 폼 시트를 일일이 대조. 동명이인이면 식은땀.',
+                            quote: '운영자',
+                            color: '#ff6b4a',
+                        },
+                        {
+                            icon: <ClipboardList size={22} />,
+                            title: '종이 명단 체크인',
+                            desc: '데스크에 2~3명이 붙어서 이름 찾기. 줄은 길어지고, 관객은 화나고, 공연은 지연.',
+                            quote: '스태프',
+                            color: '#f6c458',
+                        },
+                        {
+                            icon: <FileText size={22} />,
+                            title: '4개 앱을 오가는 운영',
+                            desc: '인스타에 공연 정보, 구글 폼에 예약, 은행 앱에 입금, 카톡으로 확인. 전부 따로.',
+                            quote: '관객',
+                            color: '#4a9eff',
+                        },
+                        {
+                            icon: <Repeat size={22} />,
+                            title: '매 공연마다 처음부터',
+                            desc: '하나도 힘든데, 여러 공연을 동시에? 같은 수작업을 공연마다 반복하는 악순환.',
+                            quote: '기획자',
+                            color: '#00d4aa',
+                        },
+                    ].map((p, i) => (
+                        <motion.div key={i} className="pain-card" variants={scaleIn} custom={i} style={{ '--pain-color': p.color }}>
+                            <div className="pain-icon">{p.icon}</div>
+                            <h3 className="pain-title">{p.title}</h3>
+                            <p className="pain-desc">{p.desc}</p>
+                            <span className="pain-who">{p.quote}</span>
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </RevealSection>
 
             {/* ─── Features ─── */}
             <RevealSection className="landing-section" id="features">
                 <motion.div variants={fadeUp} custom={0}>
                     <span className="section-label">
                         <span className="section-label-line" />
-                        핵심 기능
+                        Posta의 해결
                     </span>
                     <h2 className="section-title">
-                        이벤트의 모든 순간을
+                        이 모든 문제를
                         <br />
-                        <span className="text-gradient-primary">하나의 플랫폼에서.</span>
+                        <span className="text-gradient-primary">하나의 플랫폼으로.</span>
                     </h2>
                     <p className="section-desc">
-                        복잡한 도구 없이, Posta 하나로 이벤트 기획부터 운영, 분석까지 관리하세요.
+                        구글 폼, 은행 앱, 종이 명단 — 다 필요 없습니다. Posta 하나로 여러 공연의 기획부터 운영, 분석까지.
                     </p>
                 </motion.div>
 
-                <div className="features-grid">
+                <motion.div className="features-grid" variants={staggerContainer}>
                     {[
                         {
-                            icon: <Ticket size={24} />,
-                            iconClass: 'icon-primary',
+                            icon: <Ticket size={26} />,
+                            color: '#e86040',
+                            colorRgb: '232, 96, 64',
                             title: 'AI 포스터 분석',
                             desc: '포스터를 업로드하면 AI가 날짜, 장소, 테마 색상을 자동으로 추출합니다. 수작업 입력은 이제 그만.',
+                            tag: 'AI Powered',
                         },
                         {
-                            icon: <Users size={24} />,
-                            iconClass: 'icon-secondary',
+                            icon: <Users size={26} />,
+                            color: '#00d4aa',
+                            colorRgb: '0, 212, 170',
                             title: '예약 & 체크인',
                             desc: '관객 예약 링크 생성부터 QR 체크인까지 원클릭. 현장 혼잡 없는 매끄러운 입장 경험을 제공합니다.',
+                            tag: 'One-click',
                         },
                         {
-                            icon: <BarChart3 size={24} />,
-                            iconClass: 'icon-accent',
+                            icon: <BarChart3 size={26} />,
+                            color: '#4a9eff',
+                            colorRgb: '74, 158, 255',
                             title: '실시간 대시보드',
                             desc: '예약 현황, 체크인 비율, 관객 통계를 한눈에. 데이터 기반으로 다음 공연을 기획하세요.',
+                            tag: 'Real-time',
                         },
                     ].map((f, i) => (
                         <motion.div
                             key={i}
-                            className="feature-card glass-1"
+                            className="feature-card"
                             variants={scaleIn}
                             custom={i}
+                            style={{ '--card-color': f.color, '--card-color-rgb': f.colorRgb }}
                         >
-                            <div className={`feature-icon ${f.iconClass}`}>{f.icon}</div>
-                            <h3 className="feature-title">{f.title}</h3>
-                            <p className="feature-desc">{f.desc}</p>
+                            <div className="feature-card-glow" />
+                            <div className="feature-card-inner">
+                                <div className="feature-card-top">
+                                    <div className="feature-icon">{f.icon}</div>
+                                    <span className="feature-tag">{f.tag}</span>
+                                </div>
+                                <h3 className="feature-title">{f.title}</h3>
+                                <p className="feature-desc">{f.desc}</p>
+                            </div>
                         </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </RevealSection>
 
             {/* ─── How It Works ─── */}
@@ -213,171 +399,369 @@ export default function LandingPage() {
                         <br />
                         <span className="text-gradient-primary">완벽한 이벤트.</span>
                     </h2>
+                    <p className="section-desc">
+                        복잡한 설정 없이 누구나 쉽게. 포스터 한 장이면 이벤트가 완성됩니다.
+                    </p>
                 </motion.div>
 
                 <div className="steps-container">
+                    <div className="steps-line" />
                     {[
                         {
                             num: '01',
+                            icon: <Upload size={28} />,
                             title: '포스터 업로드',
                             desc: '공연 포스터를 업로드하세요. AI가 모든 정보를 자동으로 추출합니다.',
+                            color: '#e86040',
                         },
                         {
                             num: '02',
+                            icon: <Share2 size={28} />,
                             title: '링크 공유',
                             desc: '생성된 이벤트 페이지 링크를 관객에게 공유하세요. 예약이 바로 시작됩니다.',
+                            color: '#00d4aa',
                         },
                         {
                             num: '03',
+                            icon: <QrCode size={28} />,
                             title: '체크인 & 분석',
                             desc: 'QR 코드로 간편 체크인. 공연 후 데이터 리포트를 확인하세요.',
+                            color: '#4a9eff',
                         },
                     ].map((s, i) => (
                         <motion.div
                             key={i}
-                            className="step-item glass-1"
+                            className="step-item"
                             variants={scaleIn}
                             custom={i}
+                            style={{ '--step-color': s.color }}
                         >
+                            <div className="step-icon-wrapper">
+                                <div className="step-icon-ring" />
+                                <div className="step-icon">{s.icon}</div>
+                            </div>
                             <div className="step-number">{s.num}</div>
                             <h3 className="step-title">{s.title}</h3>
                             <p className="step-desc">{s.desc}</p>
-                            {i < 2 && <div className="step-connector" />}
                         </motion.div>
                     ))}
                 </div>
             </RevealSection>
 
             {/* ─── Showcase / Device Mockup ─── */}
-            <RevealSection className="landing-section showcase">
+            <RevealSection className="landing-section showcase" id="showcase">
                 <motion.div variants={fadeUp} custom={0}>
-                    <span className="section-label">
+                    <span className="section-label" style={{ justifyContent: 'center' }}>
                         <span className="section-label-line" />
                         미리보기
                     </span>
-                    <h2 className="section-title">
+                    <h2 className="section-title" style={{ textAlign: 'center' }}>
                         강력하면서도
                         <br />
                         <span className="text-gradient-primary">아름다운 대시보드.</span>
                     </h2>
-                    <p className="section-desc" style={{ margin: '0 auto' }}>
+                    <p className="section-desc" style={{ margin: '0 auto', textAlign: 'center' }}>
                         한눈에 모든 정보를 파악하고, 직관적인 인터페이스로 이벤트를 관리하세요.
                     </p>
                 </motion.div>
 
                 <motion.div className="showcase-mockup" variants={scaleIn} custom={1}>
+                    <div className="showcase-glow" />
                     <div className="mockup-frame">
                         <div className="mockup-browser-bar">
-                            <div className="mockup-dot red" />
-                            <div className="mockup-dot yellow" />
-                            <div className="mockup-dot green" />
-                            <div className="mockup-url-bar">posta.systems/dashboard</div>
+                            <div className="mockup-dots">
+                                <div className="mockup-dot red" />
+                                <div className="mockup-dot yellow" />
+                                <div className="mockup-dot green" />
+                            </div>
+                            <div className="mockup-url-bar">
+                                <Globe size={12} style={{ opacity: 0.5 }} />
+                                posta.systems/dashboard
+                            </div>
                         </div>
                         <div className="mockup-content">
-                            {/* Simulated dashboard cards */}
-                            <div className="mockup-card">
-                                <div className="mockup-card-title">🎸 인디밴드 라이브 콘서트</div>
-                                <div className="mockup-card-sub">2026.03.15 · 홍대 라이브클럽</div>
-                                <div className="mockup-stats">
-                                    <div className="mockup-stat">
-                                        <div className="mockup-stat-value">128</div>
-                                        <div className="mockup-stat-label">예약</div>
+                            <div className="mockup-sidebar">
+                                <div className="mockup-sidebar-logo">P</div>
+                                <div className="mockup-sidebar-item active" />
+                                <div className="mockup-sidebar-item" />
+                                <div className="mockup-sidebar-item" />
+                            </div>
+                            <div className="mockup-main">
+                                <div className="mockup-header-row">
+                                    <div className="mockup-header-title">내 이벤트</div>
+                                    <div className="mockup-header-btn">+ 새 이벤트</div>
+                                </div>
+                                <div className="mockup-cards-row">
+                                    {/* Primary card — LIVE with mini chart */}
+                                    <div className="mockup-card primary">
+                                        <div className="mockup-card-glow-pulse" />
+                                        <div className="mockup-card-badge">LIVE</div>
+                                        <div className="mockup-card-title">인디밴드 라이브 콘서트</div>
+                                        <div className="mockup-card-sub">2026.03.15 · 홍대 라이브클럽</div>
+                                        <div className="mockup-stats">
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">128</div>
+                                                <div className="mockup-stat-label">예약</div>
+                                            </div>
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">94</div>
+                                                <div className="mockup-stat-label">체크인</div>
+                                            </div>
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">73%</div>
+                                                <div className="mockup-stat-label">전환율</div>
+                                            </div>
+                                        </div>
+                                        <div className="mockup-mini-chart">
+                                            {[40, 65, 45, 80, 60, 90, 73].map((h, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="mockup-chart-bar"
+                                                    style={{ '--bar-height': `${h}%`, '--bar-delay': `${i * 0.1}s` }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="mockup-progress">
+                                            <div className="mockup-progress-bar" style={{ width: '73%' }} />
+                                        </div>
                                     </div>
-                                    <div className="mockup-stat">
-                                        <div className="mockup-stat-value">94</div>
-                                        <div className="mockup-stat-label">체크인</div>
+
+                                    {/* Secondary card — upcoming with status badge */}
+                                    <div className="mockup-card">
+                                        <div className="mockup-card-status-badge upcoming">
+                                            <CalendarDays size={10} />
+                                            D-19
+                                        </div>
+                                        <div className="mockup-card-title">재즈 나이트</div>
+                                        <div className="mockup-card-sub">2026.03.22 · 이태원 블루노트</div>
+                                        <div className="mockup-stats">
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">64</div>
+                                                <div className="mockup-stat-label">예약</div>
+                                            </div>
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">—</div>
+                                                <div className="mockup-stat-label">체크인</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="mockup-stat">
-                                        <div className="mockup-stat-value">73%</div>
-                                        <div className="mockup-stat-label">전환율</div>
+
+                                    {/* Third card — completed event */}
+                                    <div className="mockup-card completed">
+                                        <div className="mockup-card-status-badge done">
+                                            <CheckCircle2 size={10} />
+                                            완료
+                                        </div>
+                                        <div className="mockup-card-title">어쿠스틱 밤</div>
+                                        <div className="mockup-card-sub">2026.02.28 · 합정 카페홀</div>
+                                        <div className="mockup-stats">
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">56</div>
+                                                <div className="mockup-stat-label">예약</div>
+                                            </div>
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">51</div>
+                                                <div className="mockup-stat-label">체크인</div>
+                                            </div>
+                                            <div className="mockup-stat">
+                                                <div className="mockup-stat-value">91%</div>
+                                                <div className="mockup-stat-label">전환율</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="mockup-card" style={{ opacity: 0.6, transform: 'scale(0.95)' }}>
-                                <div className="mockup-card-title">🎵 재즈 나이트</div>
-                                <div className="mockup-card-sub">2026.03.22 · 이태원 블루노트</div>
+                        </div>
+                    </div>
+
+                    {/* Floating decoration — enhanced */}
+                    <div className="showcase-float float-1">
+                        <TrendingUp size={14} />
+                        <span>실시간 업데이트</span>
+                        <span className="showcase-float-num">+12%</span>
+                    </div>
+                    <div className="showcase-float float-2">
+                        <Zap size={14} />
+                        <span>AI 자동 분석</span>
+                    </div>
+                    <div className="showcase-float float-3">
+                        <Users size={14} />
+                        <span>248명 접속 중</span>
+                    </div>
+                </motion.div>
+            </RevealSection>
+
+            {/* ─── Testimonials / Social Proof ─── */}
+            <RevealSection className="landing-section" id="testimonials">
+                <motion.div variants={fadeUp} custom={0} style={{ textAlign: 'center' }}>
+                    <span className="section-label" style={{ justifyContent: 'center' }}>
+                        <span className="section-label-line" />
+                        사용자 후기
+                    </span>
+                    <h2 className="section-title" style={{ textAlign: 'center' }}>
+                        먼저 경험한 팀들의
+                        <br />
+                        <span className="text-gradient-primary">솔직한 후기.</span>
+                    </h2>
+                    <p className="section-desc" style={{ margin: '0 auto', textAlign: 'center' }}>
+                        베타 테스터들이 직접 전해주는 이야기입니다.
+                    </p>
+                </motion.div>
+
+                <motion.div className="testimonial-grid" variants={staggerContainer}>
+                    {[
+                        {
+                            name: '김도윤',
+                            role: '인디밴드 보컬',
+                            initial: '도',
+                            color: '#e86040',
+                            quote: '입금 대조에 3시간 걸리던 게 자동으로 끝나요. 공연 전날 밤새는 일이 사라졌습니다.',
+                            stars: 5,
+                        },
+                        {
+                            name: '박서연',
+                            role: '소규모 공연장 매니저',
+                            initial: '서',
+                            color: '#4a9eff',
+                            quote: '종이 명단 없이 QR 체크인만으로 입장이 끝나요. 관객 대기 시간이 절반으로 줄었습니다.',
+                            stars: 5,
+                        },
+                        {
+                            name: '이준혁',
+                            role: '대학 동아리 회장',
+                            initial: '준',
+                            color: '#00d4aa',
+                            quote: '구글 폼 4개 관리하다 Posta 하나로 정리했어요. 동아리원들도 훨씬 편해했습니다.',
+                            stars: 5,
+                        },
+                    ].map((t, i) => (
+                        <motion.div key={i} className="testimonial-card" variants={scaleIn} custom={i}>
+                            <div className="testimonial-profile">
+                                <div className="testimonial-avatar" style={{ background: t.color }}>
+                                    {t.initial}
+                                </div>
+                                <div>
+                                    <div className="testimonial-name">{t.name}</div>
+                                    <div className="testimonial-role">{t.role}</div>
+                                </div>
                             </div>
+                            <div className="testimonial-quote">
+                                <Quote size={16} className="testimonial-quote-icon" />
+                                {t.quote}
+                            </div>
+                            <div className="testimonial-stars">
+                                {Array.from({ length: t.stars }, (_, j) => (
+                                    <Star key={j} size={14} fill="#f6c458" color="#f6c458" />
+                                ))}
+                            </div>
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </RevealSection>
+
+            {/* ─── Early Access Offer ─── */}
+            <RevealSection className="landing-section early-access-section" id="early-access">
+                <motion.div variants={fadeUp} custom={0} style={{ textAlign: 'center' }}>
+                    <span className="section-label" style={{ justifyContent: 'center' }}>
+                        <span className="section-label-line" />
+                        얼리 액세스
+                    </span>
+                    <h2 className="section-title" style={{ textAlign: 'center' }}>
+                        선착순 100팀,
+                        <br />
+                        <span className="text-gradient-primary">프리미엄 무료.</span>
+                    </h2>
+                    <p className="section-desc" style={{ margin: '0 auto', textAlign: 'center' }}>
+                        지금 가입하면 유료 프리미엄 기능을 무료로 사용할 수 있습니다.
+                        <br />
+                        초기 사용자에게만 제공되는 한정 혜택입니다.
+                    </p>
+                </motion.div>
+
+                <motion.div className="early-access-card" variants={scaleIn} custom={1}>
+                    <div className="early-access-card-glow" />
+                    <div className="early-access-card-inner">
+                        <div className="early-access-badge">
+                            <Gift size={14} />
+                            Early Adopter 특별 혜택
+                        </div>
+
+                        <div className="early-access-perks">
+                            {[
+                                { icon: <Crown size={18} />, text: '프리미엄 요금제 전체 기능 무료 이용' },
+                                { icon: <Zap size={18} />, text: 'AI 포스터 분석 무제한 사용' },
+                                { icon: <BarChart3 size={18} />, text: '고급 분석 대시보드 & 리포트' },
+                                { icon: <Users size={18} />, text: '예약 인원 제한 없음' },
+                            ].map((perk, i) => (
+                                <div key={i} className="early-access-perk">
+                                    <div className="perk-icon">{perk.icon}</div>
+                                    <span className="perk-text">{perk.text}</span>
+                                    <Check size={16} className="perk-check" />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="early-access-cta-area">
+                            <button className="hero-btn-primary" onClick={goToDashboard}>
+                                <Sparkles size={18} />
+                                지금 무료로 시작하기
+                                <ArrowRight size={18} />
+                            </button>
+                            <p className="early-access-note">
+                                카드 등록 없이 가입 · 선착순 마감 시 종료
+                            </p>
                         </div>
                     </div>
                 </motion.div>
             </RevealSection>
 
-            {/* ─── Trusted By / Social Proof ─── */}
-            <RevealSection className="landing-section" style={{ textAlign: 'center' }}>
-                <motion.div variants={fadeUp} custom={0}>
-                    <span className="section-label" style={{ justifyContent: 'center' }}>
-                        <span className="section-label-line" />
-                        신뢰
-                    </span>
-                    <h2 className="section-title">
-                        아티스트와 기획자가
-                        <br />
-                        <span className="text-gradient-primary">선택한 플랫폼.</span>
-                    </h2>
-                </motion.div>
-
-                <div className="features-grid" style={{ marginTop: 48 }}>
-                    {[
-                        {
-                            icon: <Music size={24} />,
-                            iconClass: 'icon-primary',
-                            title: '공연 기획자',
-                            desc: '"복잡한 예약 시스템 때문에 스트레스받았는데, Posta 덕분에 공연에만 집중할 수 있게 됐어요."',
-                        },
-                        {
-                            icon: <Zap size={24} />,
-                            iconClass: 'icon-secondary',
-                            title: '인디 아티스트',
-                            desc: '"포스터만 올리면 알아서 이벤트 페이지가 만들어져요. 기술에 약한 저도 쉽게 쓸 수 있습니다."',
-                        },
-                        {
-                            icon: <Shield size={24} />,
-                            iconClass: 'icon-accent',
-                            title: '공연장 매니저',
-                            desc: '"QR 체크인이 정말 빠르고, 실시간으로 입장 현황을 볼 수 있어서 현장 운영이 수월해졌어요."',
-                        },
-                    ].map((t, i) => (
-                        <motion.div
-                            key={i}
-                            className="feature-card glass-1"
-                            variants={scaleIn}
-                            custom={i}
-                        >
-                            <div className={`feature-icon ${t.iconClass}`}>{t.icon}</div>
-                            <h3 className="feature-title">{t.title}</h3>
-                            <p className="feature-desc" style={{ fontStyle: 'italic' }}>{t.desc}</p>
-                        </motion.div>
-                    ))}
-                </div>
-            </RevealSection>
-
             {/* ─── Final CTA ─── */}
-            <RevealSection className="final-cta">
+            <RevealSection className="final-cta" id="cta">
                 <div className="final-cta-glow" />
-                <motion.div variants={fadeUp} custom={0}>
+                <div className="final-cta-grid" />
+                <motion.div variants={fadeUp} custom={0} style={{ position: 'relative', zIndex: 1 }}>
                     <h2 className="final-cta-title">
                         지금 바로
                         <br />
                         <span className="text-gradient-primary">Posta를 시작하세요.</span>
                     </h2>
                     <p className="final-cta-desc">
-                        무료로 첫 이벤트를 만들고,
+                        구글 폼과 종이 명단은 놓고,
                         <br />
-                        공연 관리의 새로운 경험을 느껴보세요.
+                        무대에만 집중하는 경험을 시작하세요.
                     </p>
-                    <button className="hero-btn-primary" onClick={goToDashboard}>
-                        무료로 시작하기
-                        <ArrowRight style={{ marginLeft: 8, width: 18, height: 18, verticalAlign: 'middle' }} />
-                    </button>
+                    <div className="final-cta-actions">
+                        <button className="hero-btn-primary" onClick={goToDashboard}>
+                            <Sparkles size={18} />
+                            무료로 시작하기
+                            <ArrowRight size={18} />
+                        </button>
+                    </div>
+                    <p className="final-cta-note">
+                        카드 등록 없이 무료로 시작 · 30초면 첫 이벤트 생성
+                    </p>
                 </motion.div>
             </RevealSection>
 
             {/* ─── Footer ─── */}
             <footer className="landing-footer">
-                <span className="footer-brand">Posta</span>
-                <span className="footer-copy">
-                    © 2026 Posta. All rights reserved.
-                </span>
+                <div className="footer-inner">
+                    <div className="footer-left">
+                        <span className="footer-brand">Posta</span>
+                        <span className="footer-tagline">공연을 더 특별하게.</span>
+                    </div>
+                    <div className="footer-links">
+                        <button onClick={() => scrollToSection('features')}>기능</button>
+                        <button onClick={() => scrollToSection('how')}>사용법</button>
+                        <button onClick={() => scrollToSection('early-access')}>혜택</button>
+                        <button onClick={goToDashboard}>시작하기</button>
+                    </div>
+                    <div className="footer-right">
+                        <span className="footer-copy">
+                            © 2026 Posta. All rights reserved.
+                        </span>
+                    </div>
+                </div>
             </footer>
         </div>
     );

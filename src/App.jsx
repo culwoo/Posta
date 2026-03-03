@@ -18,6 +18,8 @@ import Admin from './pages/event/Admin';
 import Checkin from './pages/event/Checkin';
 import Onsite from './pages/event/Onsite';
 import { EventProvider } from './contexts/EventContext';
+import { FeatureGate } from './components/features/FeatureGate';
+import { DevTierToggle } from './components/features/DevTierToggle';
 
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import EventList from './pages/dashboard/EventList';
@@ -63,13 +65,14 @@ function App() {
             <Route path="/e/:eventId" element={
               <EventProviderWrapper>
                 <Layout />
+                <DevTierToggle />
               </EventProviderWrapper>
             }>
               <Route index element={<Home />} />
               <Route path="info" element={<ConcertInfo />} />
-              <Route path="board" element={<Board />} />
+              <Route path="board" element={<FeatureGate feature="board"><Board /></FeatureGate>} />
               <Route path="reserve" element={<Reservation />} />
-              <Route path="onsite" element={<Onsite />} />
+              <Route path="onsite" element={<FeatureGate feature="onsite"><Onsite /></FeatureGate>} />
               <Route path="performer/login" element={<PerformerAuth />} />
               <Route
                 path="admin"
@@ -83,7 +86,9 @@ function App() {
                 path="checkin"
                 element={(
                   <ProtectedRoute>
-                    <Checkin />
+                    <FeatureGate feature="checkin">
+                      <Checkin />
+                    </FeatureGate>
                   </ProtectedRoute>
                 )}
               />

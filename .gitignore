@@ -7,10 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build output
 dist
-.tmp_build
 dist-ssr
+.tmp_build
 *.local
 
 # Editor directories and files
@@ -24,14 +27,41 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
+# ============================
+# Security - Environment & Keys
+# ============================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.jks
+*_key.txt
+temp_key*
+secrets.*
 
+# ============================
+# Temporary & Debug files
+# ============================
+temp.*
+temp_*
+*.tmp
+build_log.txt
+build_output.txt
+lint_log*.txt
+js_files.txt
+set-cors.js
+
+# Large generated files (should never be committed)
+index.js
+
+# Backup files
+_*_HEAD.*
+
+# ============================
 # Firebase
+# ============================
 .firebase/
 functions/node_modules/
 functions/.tmp_public_url
@@ -40,4 +70,14 @@ functions-debug.log*
 firestore-debug.log*
 ui-debug.log*
 
+# ============================
+# Vercel
+# ============================
 .vercel
+
+# ============================
+# AI / Tool caches
+# ============================
+.cache/
+.claude/
+.kombai/

@@ -48,23 +48,25 @@
 }
 
 .closeBtn {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(15, 23, 42, 0.75);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    border: 1px solid rgba(0, 0, 0, 0.18);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
     border-radius: 10px;
     width: 34px;
     height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--modal-text);
+    color: #fff;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
+    flex-shrink: 0;
 }
 
 .closeBtn:hover {
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(15, 23, 42, 0.9);
+    transform: scale(1.08);
 }
 
 .contentBody {
@@ -200,6 +202,8 @@
     color: var(--modal-text);
     resize: none;
     min-height: 64px;
+    min-width: 0;
+    box-sizing: border-box;
     font-family: var(--font-main);
     font-size: 0.95rem;
 }
@@ -222,8 +226,20 @@
     font-weight: 700;
     cursor: pointer;
     color: #fff;
-    background: linear-gradient(135deg, rgba(208, 76, 49, 0.9), rgba(208, 76, 49, 0.98));
-    box-shadow: 0 4px 10px rgba(208, 76, 49, 0.24);
+    background: rgb(208, 76, 49);
+    box-shadow: 0 4px 10px rgba(208, 76, 49, 0.3);
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: rgb(185, 60, 35);
+    box-shadow: 0 6px 16px rgba(208, 76, 49, 0.4);
+    transform: translateY(-1px);
+}
+
+.submitBtn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(208, 76, 49, 0.3);
 }
 
 .submitBtn:disabled {
@@ -245,6 +261,10 @@
 
     .commentForm {
         flex-direction: column;
+    }
+
+    .commentInput {
+        width: 100%;
     }
 
     .submitBtn {

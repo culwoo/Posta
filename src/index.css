@@ -135,6 +135,19 @@
   --glass-blur-lg: var(--glass-2-blur);
   --glass-blur-xl: var(--glass-3-blur);
 
+  /* Select / Dropdown */
+  --select-bg: #13152a;
+  --select-border: rgba(255, 255, 255, 0.12);
+  --select-option-bg: #1a1d32;
+  --select-option-text: #f0f0f5;
+  --select-arrow: rgba(240, 240, 245, 0.5);
+  --dropdown-bg: #1a1d32;
+  --dropdown-border: rgba(255, 255, 255, 0.14);
+  --dropdown-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --tooltip-bg: rgba(12, 16, 34, 0.92);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
   /* Gradient System */
   --gradient-primary: linear-gradient(135deg, rgba(208, 76, 49, 0.9), rgba(246, 196, 88, 0.7));
   --gradient-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
@@ -229,6 +242,19 @@ html.light {
   --glass-border-hover: rgba(0, 0, 0, 0.15);
   --glass-shadow: var(--glass-1-shadow);
   --glass-blur: var(--glass-1-blur);
+
+  /* Select / Dropdown — Light */
+  --select-bg: rgba(255, 255, 255, 0.80);
+  --select-border: rgba(0, 0, 0, 0.12);
+  --select-option-bg: #ffffff;
+  --select-option-text: #1d1d1f;
+  --select-arrow: rgba(29, 29, 31, 0.45);
+  --dropdown-bg: rgba(255, 255, 255, 0.92);
+  --dropdown-border: rgba(0, 0, 0, 0.10);
+  --dropdown-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --tooltip-bg: rgba(255, 255, 255, 0.94);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.22);
 }
 
 /* ===== Dark Mode Tokens (explicit .dark class) ===== */

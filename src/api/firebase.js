@@ -28,6 +28,7 @@ import {
     orderBy,
     onSnapshot,
     serverTimestamp,
+    increment,
     limit,
     writeBatch
 } from "firebase/firestore";
@@ -95,6 +96,7 @@ export {
     orderBy,
     onSnapshot,
     serverTimestamp,
+    increment,
     limit,
     writeBatch
 };

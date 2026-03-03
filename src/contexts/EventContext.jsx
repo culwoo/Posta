@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, doc, onSnapshot, collection, query, where, getDocs, limit } from '../api/firebase';
+import { DEFAULT_BILLING } from '../utils/permissions';
 
 const EventContext = createContext();
 const PRETENDARD_STACK = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -122,9 +123,15 @@ export const EventProvider = ({ children }) => {
         return () => window.removeEventListener('message', handleMessage);
     }, [eventData, eventId]);
 
+    // Extract billing with defaults
+    const billing = eventData?.billing
+        ? { ...DEFAULT_BILLING, ...eventData.billing }
+        : DEFAULT_BILLING;
+
     const value = {
         eventId,
         eventData,
+        billing,
         loading,
         error
     };

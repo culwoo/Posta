@@ -15,7 +15,9 @@ import {
 } from '../../api/firebase';
 import {
     ArrowLeft,
+    ChevronDown,
     Clock3,
+    Eye,
     ExternalLink,
     GripVertical,
     Maximize2,
@@ -24,10 +26,12 @@ import {
     Upload,
     X
 } from 'lucide-react';
+import styles from './ManageEvent.module.css';
 import { CSS } from '@dnd-kit/utilities';
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import AIProgressTimer from '../../components/AIProgressTimer';
+import DateFieldWithPicker from '../../components/DateFieldWithPicker';
 import TimeFieldWithPicker from '../../components/TimeFieldWithPicker';
 import { ensureContrast, hexToSrgb, relativeLuminance, contrastRatio } from '../../utils/color';
 
@@ -191,6 +195,8 @@ const ManageEvent = () => {
     const [previewTab, setPreviewTab] = useState('');
     const [reloadKey, setReloadKey] = useState(Date.now());
     const [isEnlargedPreviewOpen, setIsEnlargedPreviewOpen] = useState(false);
+    const [openIconDropdown, setOpenIconDropdown] = useState(null);
+    const iconDropdownRef = useRef(null);
 
     const [title, setTitle] = useState('');
     const [date, setDate] = useState('');
@@ -225,6 +231,21 @@ const ManageEvent = () => {
     );
 
     const deviceFrameColor = useMemo(() => darkenHex(bgColor, 0.25), [bgColor]);
+
+    useEffect(() => {
+        if (!openIconDropdown) return;
+        const handleClickOutside = (e) => {
+            if (iconDropdownRef.current && !iconDropdownRef.current.contains(e.target)) {
+                setOpenIconDropdown(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [openIconDropdown]);
 
     useEffect(() => {
         const calculateScale = () => {
@@ -668,7 +689,7 @@ const ManageEvent = () => {
     const sectionGap = { display: 'flex', flexDirection: 'column', gap: '1rem' };
 
     return (
-        <div>
+        <div className={styles.pageContainer}>
             <AIProgressTimer
                 active={extractingColors}
                 title="테마 색상 자동 추출 중"
@@ -681,71 +702,56 @@ const ManageEvent = () => {
                 ]}
             />
 
-            <div style={{ marginBottom: '1rem' }}>
-                <Link
-                    to=".."
-                    onClick={(e) => {
-                        if (isDirty && !window.confirm('저장하지 않은 변경사항이 있습니다. 저장하지 않고 이동할까요?')) {
-                            e.preventDefault();
-                        }
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none' }}
-                >
-                    <ArrowLeft size={16} /> 목록으로 돌아가기
-                </Link>
-            </div>
-
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '1rem',
-                    marginBottom: '2rem',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 100,
-                    backgroundColor: 'var(--ui-surface-hover)',
-                    backdropFilter: 'blur(8px)',
-                    borderBottom: '1px solid var(--ui-border-soft)',
-                    margin: '0 -1rem 2rem -1rem',
-                    boxShadow: '0 4px 6px -1px var(--ui-scrim)',
+            <Link
+                to=".."
+                className={styles.backLink}
+                onClick={(e) => {
+                    if (isDirty && !window.confirm('저장하지 않은 변경사항이 있습니다. 저장하지 않고 이동할까요?')) {
+                        e.preventDefault();
+                    }
                 }}
             >
-                <h2>{title || '이벤트 관리'}</h2>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <ArrowLeft size={16} /> 목록으로 돌아가기
+            </Link>
+
+            <div className={styles.stickyHeader}>
+                <h2 className={styles.stickyHeaderTitle}>{title || '이벤트 관리'}</h2>
+                <div className={styles.headerActions}>
                     <a
                         href={`/e/${eventId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.5rem 1rem', backgroundColor: 'var(--ui-surface-soft)', color: 'var(--text-primary)', border: '1px solid var(--ui-border-soft)', borderRadius: '8px', cursor: 'pointer', textDecoration: 'none', fontWeight: 'bold' }}
+                        className={styles.headerBtn}
+                        style={{ backgroundColor: 'var(--ui-surface-soft)', color: 'var(--text-primary)', textDecoration: 'none' }}
                     >
-                        <ExternalLink size={14} /> 실제 배포 페이지
+                        <ExternalLink size={14} /> <span className={styles.headerBtnLabel}>실제 배포 페이지</span>
                     </a>
                     <button
                         onClick={handleSave}
                         disabled={saving || !isDirty}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.5rem 1rem', backgroundColor: isDirty ? 'var(--ui-surface-hover)' : 'var(--ui-surface-soft)', color: 'var(--text-primary)', border: '1px solid var(--ui-border-soft)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                        className={styles.headerBtn}
+                        style={{ backgroundColor: isDirty ? 'var(--ui-surface-hover)' : 'var(--ui-surface-soft)', color: 'var(--text-primary)' }}
                     >
-                        <Save size={14} /> {saving ? '저장 중...' : isDirty ? '저장 [미저장 상태]' : '저장 (미리보기에 반영)'}
+                        <Save size={14} /> <span className={styles.headerBtnLabel}>{saving ? '저장 중...' : isDirty ? '저장 [미저장]' : '저장'}</span>
                     </button>
                     <button
                         onClick={handleDelete}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.5rem 1rem', backgroundColor: '#dc2626', color: 'var(--text-on-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                        className={styles.headerBtn}
+                        style={{ backgroundColor: '#dc2626', color: 'var(--text-on-primary)', border: 'none' }}
                     >
-                        <Trash2 size={14} /> 삭제
+                        <Trash2 size={14} /> <span className={styles.headerBtnLabel}>삭제</span>
                     </button>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <div className={styles.editorLayout}>
                 {/* 왼쪽 에디터 */}
-                <div style={{ ...sectionGap, flex: '1 1 500px' }}>
+                <div className={styles.editorPanel}>
 
                     {/* 포스터 + 테마 + 기본 정보 (HEAD 순서) */}
-                    <div style={{ ...cardStyle, ...sectionGap }}>
+                    <div className={styles.card}>
                         <h3 style={{ margin: 0 }}>포스터 업로드</h3>
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePosterUpload} style={{ display: 'none' }} />
+                        <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif" onChange={handlePosterUpload} style={{ display: 'none' }} />
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
@@ -771,7 +777,7 @@ const ManageEvent = () => {
                                 <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>테마 색상</h4>
                                 <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>포스터 업로드 시 자동 추출</span>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.8rem' }}>
+                            <div className={styles.colorGrid}>
                                 {[
                                     ['Primary (강조)', primaryColor, setPrimaryColor],
                                     ['Secondary', secondaryColor, setSecondaryColor],
@@ -792,22 +798,40 @@ const ManageEvent = () => {
                         </div>
 
                         <h4 style={{ margin: '1rem 0 0.5rem', fontSize: '1rem', color: 'var(--text-primary)' }}>폰트 설정</h4>
-                        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+                        <div className={styles.gridTwo}>
                             <div>
                                 <label style={{ ...labelStyle, fontSize: '0.8rem' }}>기본 본문 폰트</label>
-                                <select value={mainFontPreset} onChange={(event) => { if (event.target.value !== '__custom__') setFontMain(event.target.value); }} style={inputStyle}>
-                                    {FONT_PRESETS_MAIN.map((font) => (<option key={font} value={font}>{font}</option>))}
-                                    <option value="__custom__">직접 입력</option>
+                                <select
+                                    value={mainFontPreset}
+                                    onChange={(event) => {
+                                        const v = event.target.value;
+                                        setFontMain(v === '__custom__' ? '' : v);
+                                    }}
+                                    style={{ width: '100%' }}
+                                >
+                                    {FONT_PRESETS_MAIN.map((font) => (<option key={font} value={font} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>{font}</option>))}
+                                    <option value="__custom__" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>직접 입력</option>
                                 </select>
-                                <input value={fontMain} onChange={(event) => setFontMain(event.target.value)} style={{ ...inputStyle, marginTop: '0.5rem' }} placeholder="예: Pretendard" />
+                                {mainFontPreset === '__custom__' && (
+                                    <input value={fontMain} onChange={(event) => setFontMain(event.target.value)} style={{ ...inputStyle, marginTop: '0.5rem' }} placeholder="폰트명을 입력하세요" />
+                                )}
                             </div>
                             <div>
                                 <label style={{ ...labelStyle, fontSize: '0.8rem' }}>게시판/노트 폰트</label>
-                                <select value={noteFontPreset} onChange={(event) => { if (event.target.value !== '__custom__') setFontNote(event.target.value); }} style={inputStyle}>
-                                    {FONT_PRESETS_NOTE.map((font) => (<option key={font} value={font}>{font}</option>))}
-                                    <option value="__custom__">직접 입력</option>
+                                <select
+                                    value={noteFontPreset}
+                                    onChange={(event) => {
+                                        const v = event.target.value;
+                                        setFontNote(v === '__custom__' ? '' : v);
+                                    }}
+                                    style={{ width: '100%' }}
+                                >
+                                    {FONT_PRESETS_NOTE.map((font) => (<option key={font} value={font} style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>{font}</option>))}
+                                    <option value="__custom__" style={{ backgroundColor: 'var(--select-option-bg)', color: 'var(--select-option-text)' }}>직접 입력</option>
                                 </select>
-                                <input value={fontNote} onChange={(event) => setFontNote(event.target.value)} style={{ ...inputStyle, marginTop: '0.5rem' }} placeholder="예: Nanum Pen Script" />
+                                {noteFontPreset === '__custom__' && (
+                                    <input value={fontNote} onChange={(event) => setFontNote(event.target.value)} style={{ ...inputStyle, marginTop: '0.5rem' }} placeholder="폰트명을 입력하세요" />
+                                )}
                             </div>
                         </div>
 
@@ -816,17 +840,17 @@ const ManageEvent = () => {
                             <label style={labelStyle}>이벤트 제목</label>
                             <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} style={inputStyle} />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className={styles.gridTwo}>
                             <div>
                                 <label style={labelStyle}>날짜</label>
-                                <input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={inputStyle} />
+                                <DateFieldWithPicker value={date} onChange={setDate} buttonLabel="날짜 선택" />
                             </div>
                             <div>
                                 <label style={labelStyle}>시작 시간</label>
                                 <TimeFieldWithPicker value={time} onChange={setTime} buttonLabel="시작 시간 선택" />
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className={styles.gridTwo}>
                             <div>
                                 <label style={labelStyle}>장소 이름</label>
                                 <input type="text" value={location} onChange={(event) => setLocation(event.target.value)} style={inputStyle} placeholder="예: 홍대 웨스트브릿지" />
@@ -838,10 +862,10 @@ const ManageEvent = () => {
                         </div>
                     </div>
 
-                    <div style={{ ...cardStyle, ...sectionGap }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className={styles.card}>
+                        <div className={styles.sectionHeader}>
                             <h3 style={{ margin: 0 }}>셋리스트 (공연 순서)</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className={styles.sectionHeaderActions}>
                                 <button onClick={addSetlistFrame} style={{ padding: '0.4rem 0.8rem', backgroundColor: 'var(--ui-surface-soft)', color: 'var(--text-primary)', border: '1px solid var(--ui-border-soft)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>+ 프레임(1부, 2부) 추가</button>
                                 <button onClick={addSetlistSong} style={{ padding: '0.4rem 0.8rem', backgroundColor: 'var(--ui-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--ui-border-soft)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>+ 곡 추가</button>
                             </div>
@@ -873,7 +897,7 @@ const ManageEvent = () => {
                                                         type="button"
                                                         {...attributes}
                                                         {...listeners}
-                                                        style={{ border: 'none', background: 'transparent', padding: '0.2rem', cursor: 'grab', color: 'var(--text-tertiary)' }}
+                                                        style={{ border: 'none', background: 'transparent', padding: '0.2rem', cursor: 'grab', color: 'var(--text-tertiary)', touchAction: 'none' }}
                                                         aria-label="순서 이동"
                                                     >
                                                         <GripVertical size={16} />
@@ -910,8 +934,8 @@ const ManageEvent = () => {
                         </DndContext>
                     </div>
 
-                    <div style={{ ...cardStyle, ...sectionGap }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className={styles.card}>
+                        <div className={styles.sectionHeader}>
                             <h3 style={{ margin: 0 }}>공연 타임라인</h3>
                             <button onClick={addTimelineItem} style={{ padding: '0.4rem 0.8rem', backgroundColor: 'var(--ui-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--ui-border-soft)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 + 스케줄 추가
@@ -926,69 +950,115 @@ const ManageEvent = () => {
                                             {({ setNodeRef, style, isDragging, attributes, listeners }) => (
                                                 <div
                                                     ref={setNodeRef}
+                                                    className={styles.timelineRow}
                                                     style={{
                                                         ...style,
-                                                        display: 'grid',
-                                                        gridTemplateColumns: 'auto 150px 1fr auto',
-                                                        gap: '0.6rem',
-                                                        alignItems: 'center',
-                                                        border: '1px solid var(--ui-border-soft)',
-                                                        borderRadius: 10,
-                                                        padding: '0.6rem',
                                                         background: isDragging ? 'var(--ui-surface-hover)' : 'var(--ui-surface-soft)'
                                                     }}
                                                 >
                                                     <button
                                                         type="button"
+                                                        className={styles.timelineDrag}
                                                         {...attributes}
                                                         {...listeners}
                                                         aria-label="순서 이동"
-                                                        style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'grab', color: 'var(--text-tertiary)' }}
                                                     >
                                                         <GripVertical size={16} />
                                                     </button>
 
-                                                    <TimeFieldWithPicker value={item.time} onChange={(value) => updateTimelineItem(item.id, 'time', value)} />
+                                                    <div className={styles.timelineTime}>
+                                                        <TimeFieldWithPicker value={item.time} onChange={(value) => updateTimelineItem(item.id, 'time', value)} />
+                                                    </div>
 
-                                                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                                                        <input
-                                                            value={item.title}
-                                                            onChange={(event) => updateTimelineItem(item.id, 'title', event.target.value)}
-                                                            style={inputStyle}
-                                                            placeholder="내용 (예: 관객 입장)"
-                                                        />
-                                                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                                            {TIMELINE_ICONS.map((icon) => {
-                                                                const active = icon.value === item.icon;
-                                                                return (
-                                                                    <button
-                                                                        key={icon.value}
-                                                                        type="button"
-                                                                        onClick={() => updateTimelineItem(item.id, 'icon', icon.value)}
-                                                                        style={{
-                                                                            border: active ? '1px solid var(--primary-color)' : '1px solid var(--ui-border-soft)',
-                                                                            background: active ? 'var(--ui-surface-hover)' : 'var(--ui-surface-soft)',
-                                                                            borderRadius: 999,
-                                                                            padding: '0.25rem 0.55rem',
-                                                                            fontSize: '0.82rem',
-                                                                            color: 'var(--text-primary)',
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            gap: 4
-                                                                        }}
-                                                                    >
-                                                                        <span>{icon.symbol}</span>
-                                                                        <span>{icon.label}</span>
-                                                                    </button>
-                                                                );
-                                                            })}
+                                                    <div className={styles.timelineContent}>
+                                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                            <input
+                                                                value={item.title}
+                                                                onChange={(event) => updateTimelineItem(item.id, 'title', event.target.value)}
+                                                                style={{ ...inputStyle, flex: 1 }}
+                                                                placeholder="내용 (예: 관객 입장)"
+                                                            />
+                                                            <div style={{ position: 'relative' }} ref={openIconDropdown === item.id ? iconDropdownRef : undefined}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setOpenIconDropdown(openIconDropdown === item.id ? null : item.id)}
+                                                                    style={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: 4,
+                                                                        padding: '0.35rem 0.6rem',
+                                                                        border: '1px solid var(--ui-border-soft)',
+                                                                        borderRadius: 8,
+                                                                        background: 'var(--ui-surface-soft)',
+                                                                        color: 'var(--text-primary)',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.85rem',
+                                                                        whiteSpace: 'nowrap',
+                                                                        minHeight: '38px',
+                                                                    }}
+                                                                >
+                                                                    <span>{(TIMELINE_ICONS.find((ic) => ic.value === item.icon) || TIMELINE_ICONS[0]).symbol}</span>
+                                                                    <span>{(TIMELINE_ICONS.find((ic) => ic.value === item.icon) || TIMELINE_ICONS[0]).label}</span>
+                                                                    <ChevronDown size={14} style={{ opacity: 0.5 }} />
+                                                                </button>
+                                                                {openIconDropdown === item.id && (
+                                                                    <div style={{
+                                                                        position: 'absolute',
+                                                                        top: '100%',
+                                                                        right: 0,
+                                                                        marginTop: 4,
+                                                                        background: 'var(--dropdown-bg)',
+                                                                        border: '1px solid var(--dropdown-border)',
+                                                                        borderRadius: 10,
+                                                                        padding: '0.4rem',
+                                                                        display: 'grid',
+                                                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                                                        gap: '0.25rem',
+                                                                        zIndex: 200,
+                                                                        boxShadow: 'var(--dropdown-shadow)',
+                                                                        backdropFilter: 'blur(20px)',
+                                                                        WebkitBackdropFilter: 'blur(20px)',
+                                                                        minWidth: '210px',
+                                                                    }}>
+                                                                        {TIMELINE_ICONS.map((icon) => {
+                                                                            const active = icon.value === item.icon;
+                                                                            return (
+                                                                                <button
+                                                                                    key={icon.value}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        updateTimelineItem(item.id, 'icon', icon.value);
+                                                                                        setOpenIconDropdown(null);
+                                                                                    }}
+                                                                                    style={{
+                                                                                        border: active ? '1px solid var(--primary-color)' : '1px solid transparent',
+                                                                                        background: active ? 'var(--ui-surface-soft)' : 'transparent',
+                                                                                        borderRadius: 8,
+                                                                                        padding: '0.4rem 0.5rem',
+                                                                                        fontSize: '0.8rem',
+                                                                                        color: 'var(--text-primary)',
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: 4,
+                                                                                        cursor: 'pointer',
+                                                                                        whiteSpace: 'nowrap',
+                                                                                    }}
+                                                                                >
+                                                                                    <span>{icon.symbol}</span>
+                                                                                    <span>{icon.label}</span>
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
 
                                                     <button
                                                         type="button"
+                                                        className={styles.timelineDelete}
                                                         onClick={() => removeTimelineItem(item.id)}
-                                                        style={{ border: 'none', background: 'transparent', color: '#dc2626', fontWeight: 700 }}
                                                     >
                                                         삭제
                                                     </button>
@@ -1001,8 +1071,8 @@ const ManageEvent = () => {
                         </DndContext>
                     </div>
 
-                    <div style={{ ...cardStyle, ...sectionGap }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className={styles.card}>
+                        <div className={styles.sectionHeader}>
                             <h3 style={{ margin: 0 }}>결제/예약 정보</h3>
                             <div
                                 onClick={() => setIsFreeEvent(!isFreeEvent)}
@@ -1018,7 +1088,7 @@ const ManageEvent = () => {
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', margin: 0 }}>예약 페이지에 표시될 정보입니다.</p>
 
                         {!isFreeEvent ? (
-                            <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr', marginTop: '1rem' }}>
+                            <div className={styles.gridTwo} style={{ marginTop: '1rem' }}>
                                 <div>
                                     <label style={labelStyle}>은행명</label>
                                     <input type="text" value={bankName} onChange={(event) => setBankName(event.target.value)} style={inputStyle} placeholder="예: 카카오뱅크" />
@@ -1045,15 +1115,8 @@ const ManageEvent = () => {
                 </div>
 
                 <div
-                    style={{
-                        flex: `0 0 ${417 * previewScale}px`,
-                        position: 'sticky',
-                        top: '6rem',
-                        height: 'calc(100vh - 8rem)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center'
-                    }}
+                    className={styles.previewPanel}
+                    style={{ flex: `0 0 ${417 * previewScale}px` }}
                 >
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.8rem', justifyContent: 'center' }}>
                         {PREVIEW_TABS.map((tab) => (
@@ -1185,8 +1248,8 @@ const ManageEvent = () => {
                         <X size={40} />
                     </button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className={styles.enlargedPreviewInner}>
+                        <div className={styles.enlargedPreviewTabs}>
                             {PREVIEW_TABS.map((tab) => (
                                 <button
                                     key={tab.path}
@@ -1247,22 +1310,17 @@ const ManageEvent = () => {
                 </div>
             )}
 
+            <button
+                className={styles.previewFab}
+                onClick={() => setIsEnlargedPreviewOpen(true)}
+                aria-label="미리보기"
+            >
+                <Eye size={24} />
+            </button>
+
             <div
-                style={{
-                    position: 'fixed',
-                    right: 22,
-                    bottom: 22,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '0.6rem 0.8rem',
-                    borderRadius: 12,
-                    background: isDirty ? '#7f1d1d' : '#0f766e',
-                    color: '#fff',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    boxShadow: '0 10px 24px rgba(0,0,0,0.2)'
-                }}
+                className={styles.statusBadge}
+                style={{ background: isDirty ? '#7f1d1d' : '#0f766e' }}
             >
                 <Clock3 size={14} />
                 {isDirty ? '미저장 상태' : '저장됨'}

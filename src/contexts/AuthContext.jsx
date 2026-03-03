@@ -16,6 +16,7 @@ import {
     signOut as firebaseSignOut
 } from '../api/firebase';
 import { isAdminEmail } from '../config/admins';
+import { DEFAULT_PREMIUM } from '../utils/permissions';
 
 const AuthContext = createContext();
 
@@ -27,6 +28,11 @@ const extractPremiumInfo = (userData) => {
         tier: userData.tier || 'free',
         isPremium: userData.isPremium === true || userData.tier === 'premium' || userData.tier === 'pro'
     };
+};
+
+const extractAccountPremium = (userData) => {
+    if (!userData?.premium) return DEFAULT_PREMIUM;
+    return { ...DEFAULT_PREMIUM, ...userData.premium };
 };
 
 const getStoredAudience = (eventId) => {
@@ -43,6 +49,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [authInitialized, setAuthInitialized] = useState(false);
+    const [accountPremium, setAccountPremium] = useState(DEFAULT_PREMIUM);
     const location = useLocation();
 
     const currentEventId = useMemo(() => {
@@ -62,7 +69,9 @@ export const AuthProvider = ({ children }) => {
         try {
             const userSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
             if (userSnap.exists()) {
-                premiumInfo = extractPremiumInfo(userSnap.data());
+                const userData = userSnap.data();
+                premiumInfo = extractPremiumInfo(userData);
+                setAccountPremium(extractAccountPremium(userData));
             }
         } catch (error) {
             console.warn('Failed to read premium info:', error);
@@ -353,6 +362,8 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         loading,
+        accountPremium,
+        setAccountPremium,
         performerLogin,
         audienceLogin,
         logout,

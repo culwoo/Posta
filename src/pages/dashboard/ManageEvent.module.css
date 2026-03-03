@@ -1,0 +1,381 @@
+/* ===== ManageEvent Mobile Optimization ===== */
+
+/* --- Page Container --- */
+.pageContainer {
+    position: relative;
+}
+
+/* --- Back Link --- */
+.backLink {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin-bottom: 1rem;
+}
+
+/* --- Sticky Header --- */
+.stickyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    margin: 0 -1rem 2rem -1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--ui-surface-hover);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--ui-border-soft);
+    box-shadow: 0 4px 6px -1px var(--ui-scrim);
+}
+
+.stickyHeaderTitle {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.headerActions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.headerBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    min-height: 44px;
+}
+
+.headerBtnLabel {
+    /* visible on desktop */
+}
+
+/* --- Editor Layout (2-column) --- */
+.editorLayout {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.editorPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1 1 500px;
+}
+
+.previewPanel {
+    position: sticky;
+    top: 6rem;
+    height: calc(100vh - 8rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* --- Card --- */
+.card {
+    background-color: var(--ui-surface-hover);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--ui-border-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* --- Grid Two (2-column fields) --- */
+.gridTwo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* --- Color Grid --- */
+.colorGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.8rem;
+}
+
+/* --- Section Header (title + action buttons inline) --- */
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sectionHeaderActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* --- Timeline Row --- */
+.timelineRow {
+    display: grid;
+    grid-template-columns: auto 190px 1fr auto;
+    grid-template-areas: "drag time content delete";
+    gap: 0.6rem;
+    align-items: center;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: 10px;
+    padding: 0.6rem;
+}
+
+.timelineDrag {
+    grid-area: drag;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: grab;
+    color: var(--text-tertiary);
+}
+
+.timelineTime {
+    grid-area: time;
+}
+
+.timelineContent {
+    grid-area: content;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.timelineDelete {
+    grid-area: delete;
+    border: none;
+    background: transparent;
+    color: #dc2626;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* --- Status Badge --- */
+.statusBadge {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.6rem 0.8rem;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+}
+
+/* --- Preview FAB (mobile only) --- */
+.previewFab {
+    display: none;
+}
+
+/* --- Enlarged Preview Inner --- */
+.enlargedPreviewInner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.enlargedPreviewTabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* ===========================================================
+   Mobile Breakpoint: 768px
+   =========================================================== */
+@media (max-width: 768px) {
+
+    /* Sticky header: 2-row layout */
+    .stickyHeader {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin: 0 -1rem 1rem -1rem;
+    }
+
+    .stickyHeaderTitle {
+        font-size: 1.1rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    .headerActions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .headerBtn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    /* Hide button text labels, show only icons */
+    .headerBtnLabel {
+        display: none;
+    }
+
+    /* Editor layout: single column */
+    .editorLayout {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .editorPanel {
+        flex: 1 1 auto;
+    }
+
+    /* Hide preview panel on mobile */
+    .previewPanel {
+        display: none;
+    }
+
+    /* Card: reduced padding */
+    .card {
+        padding: 1rem;
+    }
+
+    /* 2-column grids → single column */
+    .gridTwo {
+        grid-template-columns: 1fr;
+    }
+
+    /* Color grid: smaller min */
+    .colorGrid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+
+    /* Section header: wrap on narrow screens */
+    .sectionHeader {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .sectionHeaderActions {
+        width: 100%;
+    }
+
+    .sectionHeaderActions > button {
+        flex: 1;
+        min-height: 44px;
+    }
+
+    /* Timeline row: vertical stack */
+    .timelineRow {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "drag   content delete"
+            ".      time    ."
+            ".      icons   .";
+        gap: 0.4rem;
+        padding: 0.75rem;
+    }
+
+    .timelineDrag {
+        touch-action: none;
+        min-width: 32px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timelineDelete {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Status badge: above bottom nav */
+    .statusBadge {
+        bottom: 80px;
+    }
+
+    /* Show Preview FAB on mobile */
+    .previewFab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        right: 22px;
+        bottom: 150px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, var(--primary-color, #d04c31), var(--secondary-color, #f6c458));
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        z-index: 60;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .previewFab:active {
+        transform: scale(0.92);
+    }
+
+    /* Enlarged preview: mobile-friendly */
+    .enlargedPreviewInner {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .enlargedPreviewTabs {
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.4rem;
+        padding: 0 0.5rem;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===========================================================
+   Small Mobile Breakpoint: 400px
+   =========================================================== */
+@media (max-width: 400px) {
+
+    .stickyHeader {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .stickyHeaderTitle {
+        font-size: 1rem;
+    }
+
+    .card {
+        padding: 0.75rem;
+    }
+
+    .colorGrid {
+        grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    }
+
+    .timelineRow {
+        padding: 0.5rem;
+    }
+}

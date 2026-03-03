@@ -1,61 +1,70 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock3 } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
-const HOURS_12 = Array.from({ length: 12 }, (_, index) => index + 1);
-const MINUTES = Array.from({ length: 60 }, (_, index) => index);
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-const parseTime = (value) => {
-    if (!/^\d{2}:\d{2}$/.test(String(value || ''))) return null;
-    const [hourRaw, minuteRaw] = value.split(':').map((part) => Number(part));
-    if (Number.isNaN(hourRaw) || Number.isNaN(minuteRaw)) return null;
-    return {
-        hour24: Math.max(0, Math.min(23, hourRaw)),
-        minute: Math.max(0, Math.min(59, minuteRaw))
-    };
+const parseDate = (value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+    const [y, m, d] = value.split('-').map(Number);
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return null;
+    return { year: y, month: m, day: d };
 };
 
-const toTimeString = (hour24, minute) => `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+const toDateString = (year, month, day) =>
+    `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
 const toDisplayLabel = (value, placeholder) => {
-    const parsed = parseTime(value);
+    const parsed = parseDate(value);
     if (!parsed) return placeholder;
-    const meridiem = parsed.hour24 >= 12 ? '오후' : '오전';
-    const hour12 = parsed.hour24 % 12 === 0 ? 12 : parsed.hour24 % 12;
-    return `${meridiem} ${String(hour12).padStart(2, '0')}:${String(parsed.minute).padStart(2, '0')}`;
+    return `${parsed.year}년 ${String(parsed.month).padStart(2, '0')}월 ${String(parsed.day).padStart(2, '0')}일`;
 };
 
-const TimeFieldWithPicker = ({
+const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+
+const DateFieldWithPicker = ({
     value,
     onChange,
     disabled = false,
-    placeholder = '시간을 선택하세요',
-    buttonLabel = '시간 선택'
+    placeholder = '날짜를 선택하세요',
+    buttonLabel = '날짜 선택'
 }) => {
     const [fallbackOpen, setFallbackOpen] = useState(false);
-    const [fallbackMeridiem, setFallbackMeridiem] = useState('AM');
-    const [fallbackHour, setFallbackHour] = useState(12);
-    const [fallbackMinute, setFallbackMinute] = useState(0);
+
+    const now = new Date();
+    const [fallbackYear, setFallbackYear] = useState(now.getFullYear());
+    const [fallbackMonth, setFallbackMonth] = useState(now.getMonth() + 1);
+    const [fallbackDay, setFallbackDay] = useState(now.getDate());
 
     useEffect(() => {
-        const parsed = parseTime(value);
+        const parsed = parseDate(value);
         if (!parsed) return;
-        setFallbackMeridiem(parsed.hour24 >= 12 ? 'PM' : 'AM');
-        setFallbackHour(parsed.hour24 % 12 === 0 ? 12 : parsed.hour24 % 12);
-        setFallbackMinute(parsed.minute);
+        setFallbackYear(parsed.year);
+        setFallbackMonth(parsed.month);
+        setFallbackDay(parsed.day);
     }, [value]);
 
+    const maxDay = useMemo(() => daysInMonth(fallbackYear, fallbackMonth), [fallbackYear, fallbackMonth]);
+
+    useEffect(() => {
+        if (fallbackDay > maxDay) setFallbackDay(maxDay);
+    }, [maxDay, fallbackDay]);
+
     const displayLabel = useMemo(() => toDisplayLabel(value, placeholder), [value, placeholder]);
+
+    const years = useMemo(() => {
+        const current = now.getFullYear();
+        return Array.from({ length: 7 }, (_, i) => current - 1 + i);
+    }, []);
+
+    const days = useMemo(() => Array.from({ length: maxDay }, (_, i) => i + 1), [maxDay]);
 
     const openPicker = () => {
         if (disabled) return;
         setFallbackOpen(true);
     };
 
-    const applyFallbackTime = () => {
-        const normalizedHour = fallbackHour % 12;
-        const hour24 = fallbackMeridiem === 'PM' ? normalizedHour + 12 : normalizedHour;
-        const converted = hour24 === 24 ? 12 : hour24;
-        onChange(toTimeString(converted, fallbackMinute));
+    const applyFallbackDate = () => {
+        onChange(toDateString(fallbackYear, fallbackMonth, Math.min(fallbackDay, maxDay)));
         setFallbackOpen(false);
     };
 
@@ -95,11 +104,12 @@ const TimeFieldWithPicker = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         padding: '0.5rem 0.75rem',
-                        gap: '0.35rem'
+                        gap: '0.35rem',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
                     }}
                     aria-label={buttonLabel}
                 >
-                    <Clock3 size={16} />
+                    <Calendar size={16} />
                 </button>
             </div>
 
@@ -132,12 +142,12 @@ const TimeFieldWithPicker = ({
                             padding: '1.2rem'
                         }}
                     >
-                        <h4 style={{ margin: '0 0 1rem', color: 'var(--text-primary)', fontSize: '1.1rem', textAlign: 'center' }}>시간 선택</h4>
+                        <h4 style={{ margin: '0 0 1rem', color: 'var(--text-primary)', fontSize: '1.1rem', textAlign: 'center' }}>날짜 선택</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                             {[
-                                { value: fallbackMeridiem, onChange: (e) => setFallbackMeridiem(e.target.value), options: [{ v: 'AM', l: '오전' }, { v: 'PM', l: '오후' }] },
-                                { value: fallbackHour, onChange: (e) => setFallbackHour(Number(e.target.value)), options: HOURS_12.map((h) => ({ v: h, l: `${String(h).padStart(2, '0')}시` })) },
-                                { value: fallbackMinute, onChange: (e) => setFallbackMinute(Number(e.target.value)), options: MINUTES.map((m) => ({ v: m, l: `${String(m).padStart(2, '0')}분` })) }
+                                { value: fallbackYear, onChange: (e) => setFallbackYear(Number(e.target.value)), options: years.map((y) => ({ v: y, l: `${y}년` })) },
+                                { value: fallbackMonth, onChange: (e) => setFallbackMonth(Number(e.target.value)), options: MONTHS.map((m) => ({ v: m, l: `${String(m).padStart(2, '0')}월` })) },
+                                { value: fallbackDay, onChange: (e) => setFallbackDay(Number(e.target.value)), options: days.map((d) => ({ v: d, l: `${String(d).padStart(2, '0')}일` })) }
                             ].map((sel, idx) => (
                                 <select
                                     key={idx}
@@ -181,7 +191,7 @@ const TimeFieldWithPicker = ({
                             </button>
                             <button
                                 type="button"
-                                onClick={applyFallbackTime}
+                                onClick={applyFallbackDate}
                                 style={{
                                     padding: '0.55rem 1rem',
                                     borderRadius: 10,
@@ -205,4 +215,4 @@ const TimeFieldWithPicker = ({
     );
 };
 
-export default TimeFieldWithPicker;
+export default DateFieldWithPicker;

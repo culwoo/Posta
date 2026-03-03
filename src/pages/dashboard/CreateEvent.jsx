@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
+import DateFieldWithPicker from '../../components/DateFieldWithPicker';
 
 const glassInputStyle = {
     width: '100%',
@@ -18,6 +19,7 @@ const glassInputStyle = {
     fontFamily: 'var(--font-main)',
     transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
     boxSizing: 'border-box',
+    minHeight: '44px',
 };
 
 const labelStyle = {
@@ -137,7 +139,7 @@ const CreateEvent = () => {
 
             <h2 style={{
                 margin: '0 0 1.5rem 0',
-                fontSize: '1.5rem',
+                fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
                 fontWeight: 700,
                 letterSpacing: '-0.02em',
                 fontFamily: 'var(--font-main)',
@@ -146,7 +148,7 @@ const CreateEvent = () => {
                 새 이벤트 만들기
             </h2>
 
-            <GlassCard level={1} style={{ padding: '2rem' }}>
+            <GlassCard level={1} style={{ padding: 'clamp(1.25rem, 4vw, 2rem)' }}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div>
                         <label style={labelStyle}>이벤트 제목</label>
@@ -158,7 +160,7 @@ const CreateEvent = () => {
                     </div>
                     <div>
                         <label style={{ ...labelStyle, fontWeight: 600 }}>고유 주소 (URL Slug)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <span style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-main)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>posta.systems/e/</span>
                             <input
                                 type="text" value={slug} onChange={e => setSlug(e.target.value)} required
@@ -172,10 +174,7 @@ const CreateEvent = () => {
                     </div>
                     <div>
                         <label style={labelStyle}>날짜</label>
-                        <input
-                            type="date" value={date} onChange={e => setDate(e.target.value)}
-                            style={glassInputStyle}
-                        />
+                        <DateFieldWithPicker value={date} onChange={setDate} buttonLabel="날짜 선택" />
                     </div>
                     <div>
                         <label style={labelStyle}>장소</label>
