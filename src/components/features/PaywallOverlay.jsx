@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import GlassButton from '../ui/GlassButton';
-import { getTierLabel, getTierColor, TIER_PRICES, ACCOUNT_PREMIUM_PRICE } from '../../utils/permissions';
+import { getTierLabel, getTierColor, TIER_PRICES } from '../../utils/permissions';
 
 /**
  * Blur overlay shown when a user doesn't have access to a feature.
@@ -13,8 +13,7 @@ import { getTierLabel, getTierColor, TIER_PRICES, ACCOUNT_PREMIUM_PRICE } from '
 export function PaywallOverlay({ featureName, requiredTier, currentTier, price }) {
   const navigate = useNavigate();
 
-  const isAccountFeature = requiredTier === 'account_premium';
-  const displayPrice = isAccountFeature ? ACCOUNT_PREMIUM_PRICE : (price || TIER_PRICES[requiredTier] || 0);
+  const displayPrice = price || TIER_PRICES[requiredTier] || 0;
   const requiredLabel = getTierLabel(requiredTier);
   const requiredColor = getTierColor(requiredTier);
   const currentLabel = getTierLabel(currentTier);
@@ -59,7 +58,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
             marginBottom: '0.5rem',
             letterSpacing: '-0.02em',
           }}>
-            {featureName}
+            이 기능은 {requiredLabel} 패스가 필요합니다.
           </h3>
 
           {/* Current tier */}
@@ -74,10 +73,12 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
               fontWeight: 600,
             }}>{currentLabel}</span> 플랜을 사용 중입니다.
             <br />
-            이 기능은 <span style={{
+            응원 게시판과 광고 없는 쾌적한 화면을 위해
+            <span style={{
               color: requiredColor,
               fontWeight: 600,
-            }}>{requiredLabel}</span> 이상에서 사용할 수 있습니다.
+              marginLeft: '0.2rem',
+            }}>{requiredLabel} 패스</span>로 업그레이드하세요.
           </p>
 
           {/* Price */}
@@ -95,7 +96,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
               color: 'var(--ui-text-muted, rgba(255,255,255,0.5))',
               marginLeft: '0.25rem',
             }}>
-              {isAccountFeature ? '/ 계정 (영구)' : '/ 공연'}
+              / 공연
             </span>
           </div>
 

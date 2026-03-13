@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { ADSENSE_PUBLISHER_ID, ADSENSE_ENABLED } from '../config/adsense';
 import styles from './GoogleAd.module.css';
 
@@ -19,15 +20,15 @@ import styles from './GoogleAd.module.css';
  *   - AdSense 승인 후 ADSENSE_ENABLED=true로 전환하면 실제 광고 노출
  */
 const GoogleAd = ({ slotId, format = 'auto', label = '', style = {}, className = '' }) => {
-    const { user } = useAuth();
+    const { canAccess } = usePermissions();
     const adRef = useRef(null);
     const pushed = useRef(false);
 
-    // Premium 유저: 광고 비노출
-    const isPremium = user?.isPremium === true;
+    // Premium (Plus tier): 광고 비노출
+    const adFree = canAccess('adFree').allowed;
 
     useEffect(() => {
-        if (isPremium || !ADSENSE_ENABLED) return;
+        if (adFree || !ADSENSE_ENABLED) return;
 
         // adsbygoogle push — 한 번만 실행
         if (!pushed.current && adRef.current && window.adsbygoogle) {
@@ -38,9 +39,9 @@ const GoogleAd = ({ slotId, format = 'auto', label = '', style = {}, className =
                 console.warn('[GoogleAd] adsbygoogle push error:', e);
             }
         }
-    }, [isPremium]);
+    }, [adFree]);
 
-    if (isPremium) return null;
+    if (adFree) return null;
 
     // ━━━ 광고 비활성 모드: 개발용 플레이스홀더 ━━━
     if (!ADSENSE_ENABLED) {

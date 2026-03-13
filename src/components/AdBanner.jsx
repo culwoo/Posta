@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { Crown, X, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import GoogleAd from './GoogleAd';
@@ -21,12 +22,11 @@ import { AD_SLOTS } from '../config/adsense';
  *   showAd    - Google 광고 슬롯 표시 여부 (default: true)
  */
 const AdBanner = ({ placement = 'dashboard', style = {}, showPromo = true, showAd = true }) => {
-    const { user, accountPremium } = useAuth();
+    const { canAccess } = usePermissions();
     const [dismissed, setDismissed] = React.useState(false);
 
-    // Premium users: never show ads (legacy check + new account premium check)
-    if (user?.isPremium) return null;
-    if (accountPremium?.active && accountPremium?.features?.adFree) return null;
+    // If adFree is allowed for the current context (Event Plus tier), hide ads
+    if (canAccess('adFree').allowed) return null;
 
     // 광고 슬롯 매핑
     const slotMap = {

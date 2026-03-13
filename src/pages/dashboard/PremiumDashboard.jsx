@@ -1,21 +1,18 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Crown, Check, X, Zap, Users, Star, Shield, Sparkles } from 'lucide-react';
+import { Crown, Check, X, Zap, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
-import { TIER_PRICES, ACCOUNT_PREMIUM_PRICE, getTierLabel, getTierColor } from '../../utils/permissions';
+import { TIER_PRICES, getTierColor } from '../../utils/permissions';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* ─────────────────────────── Data ─────────────────────────── */
 
 const EVENT_FEATURES = [
-  { key: 'home',     label: '홈 페이지',        free: true,  basic: true,  pro: true },
-  { key: 'info',     label: '공연 정보',        free: true,  basic: true,  pro: true },
-  { key: 'reserve',  label: '예매 / 좌석 선택',  free: true,  basic: true,  pro: true },
-  { key: 'admin',    label: '관리자 패널',       free: true,  basic: true,  pro: true },
-  { key: 'board',    label: '커뮤니티 보드',     free: false, basic: true,  pro: true },
-  { key: 'checkin',  label: 'QR 체크인',        free: false, basic: false, pro: true },
-  { key: 'onsite',   label: '현장 관리',        free: false, basic: false, pro: true },
-  { key: 'audience', label: '관객 대시보드',     free: false, basic: false, pro: true },
+  { key: 'admin',    label: '핵심 관리자 패널',     free: true, plus: true },
+  { key: 'reserve',  label: '예매 및 좌석 선택',     free: true, plus: true },
+  { key: 'checkin',  label: 'QR 체크인 및 현장관리',  free: true, plus: true },
+  { key: 'board',    label: '응원 및 방명록 게시판',   free: false, plus: true },
+  { key: 'adFree',   label: '관객 화면 광고 제거',    free: false, plus: true },
 ];
 
 const eventPlans = [
@@ -24,30 +21,20 @@ const eventPlans = [
     name: 'Free',
     price: TIER_PRICES.free,
     period: '/ 공연',
-    description: '소규모 공연을 무료로 시작하세요.',
+    description: 'Posta 생태계의 모든 강력한 기능을 무료로 시작하세요.',
     icon: Users,
     color: getTierColor('free'),
     highlight: false,
   },
   {
-    id: 'basic',
-    name: 'Basic Pass',
-    price: TIER_PRICES.basic,
+    id: 'plus',
+    name: 'Plus Pass',
+    price: TIER_PRICES.plus,
     period: '/ 공연',
-    description: '커뮤니티 보드로 관객과 소통하세요.',
+    description: '광고 없는 쾌적한 화면과 열려있는 소통 창구를 관객에게 제공하세요.',
     icon: Zap,
-    color: getTierColor('basic'),
+    color: getTierColor('plus'),
     highlight: true,
-  },
-  {
-    id: 'pro',
-    name: 'Pro Pass',
-    price: TIER_PRICES.pro,
-    period: '/ 공연',
-    description: '모든 기능을 활용한 완벽한 공연 운영.',
-    icon: Crown,
-    color: getTierColor('pro'),
-    highlight: false,
   },
 ];
 
@@ -62,9 +49,6 @@ const FeatureMark = ({ enabled, color }) => (
 /* ──────────────────── Component ───────────────────── */
 
 const PremiumDashboard = () => {
-  const { user, accountPremium } = useAuth();
-  const isPremiumActive = accountPremium?.active === true;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* ── Header ── */}
@@ -88,7 +72,7 @@ const PremiumDashboard = () => {
           fontSize: '0.9rem',
           fontFamily: 'var(--font-main)',
         }}>
-          공연별 이벤트 패스와 계정 프리미엄으로 Posta를 120% 활용하세요.
+          관객 경험을 극대화하는 Plus 패스로 멋진 공연을 완성하세요.
         </p>
       </div>
 
@@ -110,7 +94,7 @@ const PremiumDashboard = () => {
           fontSize: '0.82rem',
           fontFamily: 'var(--font-main)',
         }}>
-          공연 생성 시 일회성으로 구매합니다. 환불은 불가합니다.
+          결제는 공연별 일회성으로 진행되며, 환불은 불가합니다.
         </p>
 
         {/* Tier Cards */}
@@ -152,7 +136,7 @@ const PremiumDashboard = () => {
                     whiteSpace: 'nowrap',
                     fontFamily: 'var(--font-main)',
                   }}>
-                    추천
+                     추천
                   </div>
                 )}
 
@@ -176,6 +160,7 @@ const PremiumDashboard = () => {
                   color: 'var(--text-tertiary)',
                   fontSize: '0.8rem',
                   fontFamily: 'var(--font-main)',
+                  minHeight: '2.5rem',
                 }}>
                   {plan.description}
                 </p>
@@ -203,7 +188,7 @@ const PremiumDashboard = () => {
                 </div>
 
                 {/* Feature checklist */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
                   {EVENT_FEATURES.map((f) => {
                     const enabled = f[plan.id];
                     return (
@@ -211,12 +196,14 @@ const PremiumDashboard = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        fontSize: '0.83rem',
+                        fontSize: '0.85rem',
                         color: enabled ? 'var(--text-secondary)' : 'rgba(255,255,255,0.25)',
                         fontFamily: 'var(--font-main)',
                       }}>
                         <FeatureMark enabled={enabled} color={plan.color} />
-                        {f.label}
+                        <span style={!enabled ? { textDecoration: 'line-through' } : {}}>
+                          {f.label}
+                        </span>
                       </div>
                     );
                   })}
@@ -246,129 +233,18 @@ const PremiumDashboard = () => {
         </div>
       </div>
 
-      {/* ═══════════════ Section 2: Account Premium ═══════════════ */}
-      <GlassCard
-        level={2}
-        style={{
-          padding: '1.5rem',
-          border: isPremiumActive ? '1px solid rgba(245,158,11,0.35)' : undefined,
-          background: isPremiumActive
-            ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 100%)'
-            : undefined,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <Star size={18} style={{ color: '#f59e0b' }} />
-              <h3 style={{
-                margin: 0,
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                fontFamily: 'var(--font-main)',
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-              }}>
-                Account Premium
-              </h3>
-              {isPremiumActive && (
-                <span style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: '#fff',
-                  padding: '2px 10px',
-                  borderRadius: '999px',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-main)',
-                }}>
-                  활성
-                </span>
-              )}
-            </div>
-            <p style={{
-              margin: '0.25rem 0 0.75rem',
-              color: 'var(--text-tertiary)',
-              fontSize: '0.82rem',
-              fontFamily: 'var(--font-main)',
-            }}>
-              계정 단위로 한 번 구매하면 영구적으로 적용됩니다.
-            </p>
-
-            {/* Premium features */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {[
-                { label: '모든 광고 제거', desc: '대시보드 및 이벤트 페이지에서 광고가 사라집니다.' },
-                { label: '고급 분석 대시보드', desc: '예매 전환율, 시간대별 트래픽, 관객 인사이트를 확인합니다.' },
-              ].map((feat, idx) => (
-                <div key={idx} style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontFamily: 'var(--font-main)',
-                }}>
-                  <Sparkles size={14} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{feat.label}</span>
-                    <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.35rem' }}>— {feat.desc}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Price + CTA */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            minWidth: '160px',
-            textAlign: 'right',
-          }}>
-            <div style={{
-              fontSize: '1.6rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-main)',
-              letterSpacing: '-0.03em',
-            }}>
-              ₩{ACCOUNT_PREMIUM_PRICE.toLocaleString()}
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 400,
-                color: 'var(--text-tertiary)',
-                marginLeft: '0.2rem',
-              }}>
-                / 계정 (영구)
-              </span>
-            </div>
-            <GlassButton
-              variant="primary"
-              size="md"
-              disabled
-              style={{
-                marginTop: '0.75rem',
-                opacity: isPremiumActive ? 0.5 : 0.7,
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                boxShadow: '0 4px 14px rgba(245,158,11,0.25)',
-                justifyContent: 'center',
-                minWidth: '140px',
-              }}
-            >
-              {isPremiumActive ? '구매 완료' : 'Coming Soon'}
-            </GlassButton>
-          </div>
-        </div>
-      </GlassCard>
-
       {/* ── Footer note ── */}
       <div style={{
+        marginTop: '1rem',
         color: 'var(--text-tertiary)',
         fontSize: '0.75rem',
         fontFamily: 'var(--font-main)',
         textAlign: 'center',
         lineHeight: 1.6,
+        padding: '1rem',
+        background: 'rgba(255, 255, 255, 0.02)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
       }}>
         결제 시스템은 정식 서비스 출시 후 활성화될 예정입니다.<br />
         모든 유료 상품은 환불이 불가합니다.

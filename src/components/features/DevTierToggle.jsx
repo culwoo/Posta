@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import { useEvent } from '../../contexts/EventContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { db, doc, setDoc } from '../../api/firebase';
-import { DEFAULT_BILLING, DEFAULT_PREMIUM } from '../../utils/permissions';
+import { DEFAULT_BILLING } from '../../utils/permissions';
 
 /**
- * Dev-only floating panel to switch event tier and account premium.
+ * Dev-only floating panel to switch event tier.
  * Only renders when import.meta.env.DEV is true.
  */
 export function DevTierToggle() {
   const [collapsed, setCollapsed] = useState(true);
   const { eventData, billing } = useEvent();
-  const { user, accountPremium, setAccountPremium } = useAuth();
 
   // Only show in development
   if (!import.meta.env.DEV) return null;
 
   const currentTier = billing?.tier || 'free';
-  const isPremium = accountPremium?.active === true;
 
   const handleTierChange = async (newTier) => {
     if (!eventData?.id) return;
@@ -25,30 +22,13 @@ export function DevTierToggle() {
       const newBilling = {
         ...DEFAULT_BILLING,
         tier: newTier,
-        price: newTier === 'pro' ? 9900 : newTier === 'basic' ? 4900 : 0,
+        price: newTier === 'plus' ? 9900 : 0,
         purchasedAt: newTier !== 'free' ? new Date().toISOString() : null,
-        purchasedBy: newTier !== 'free' ? (user?.uid || null) : null,
+        purchasedBy: newTier !== 'free' ? 'dev_user' : null,
       };
       await setDoc(doc(db, 'events', eventData.id), { billing: newBilling }, { merge: true });
     } catch (err) {
       console.error('DevTierToggle: Failed to update tier', err);
-    }
-  };
-
-  const handlePremiumToggle = async () => {
-    if (!user?.uid) return;
-    try {
-      const newPremium = isPremium
-        ? DEFAULT_PREMIUM
-        : {
-            active: true,
-            purchasedAt: new Date().toISOString(),
-            features: { adFree: true, advancedAnalytics: true },
-          };
-      await setDoc(doc(db, 'users', user.uid), { premium: newPremium }, { merge: true });
-      setAccountPremium(newPremium);
-    } catch (err) {
-      console.error('DevTierToggle: Failed to update premium', err);
     }
   };
 
@@ -91,7 +71,6 @@ export function DevTierToggle() {
         >
           <span style={badgeStyle}>DEV</span>
           {currentTier.toUpperCase()}
-          {isPremium && ' +P'}
         </button>
       </div>
     );
@@ -132,7 +111,7 @@ export function DevTierToggle() {
         </div>
 
         {/* Event tier */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div>
           <label style={{
             display: 'block',
             fontSize: '0.6875rem',
@@ -144,7 +123,7 @@ export function DevTierToggle() {
             Event Tier
           </label>
           <div style={{ display: 'flex', gap: '4px' }}>
-            {['free', 'basic', 'pro'].map((tier) => (
+            {['free', 'plus'].map((tier) => (
               <button
                 key={tier}
                 onClick={() => handleTierChange(tier)}
@@ -169,40 +148,6 @@ export function DevTierToggle() {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Account premium */}
-        <div>
-          <label style={{
-            display: 'block',
-            fontSize: '0.6875rem',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '0.375rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}>
-            Account Premium
-          </label>
-          <button
-            onClick={handlePremiumToggle}
-            style={{
-              width: '100%',
-              padding: '6px 0',
-              borderRadius: '8px',
-              border: isPremium
-                ? '1px solid rgba(245,158,11,0.5)'
-                : '1px solid rgba(255,255,255,0.1)',
-              background: isPremium
-                ? 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1))'
-                : 'rgba(255,255,255,0.05)',
-              color: isPremium ? '#fbbf24' : 'rgba(255,255,255,0.5)',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            {isPremium ? '✦ Active' : 'Inactive'}
-          </button>
         </div>
       </div>
     </div>
