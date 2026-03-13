@@ -6,13 +6,14 @@
  * 3. extractPosterColors: Extracts theme colors from poster image with Gemini
  */
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
-const { defineSecret } = require("firebase-functions/params");
+const { defineSecret, defineString } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 // Firebase Admin init
 initializeApp();
@@ -24,6 +25,10 @@ const GMAIL_APP_PASSWORD = defineSecret("GMAIL_APP_PASSWORD");
 const EMAIL_FROM_NAME = defineSecret("EMAIL_FROM_NAME");
 const PUBLIC_BASE_URL = defineSecret("PUBLIC_BASE_URL");
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+const LEMON_SQUEEZY_WEBHOOK_SECRET = defineSecret("LEMON_SQUEEZY_WEBHOOK_SECRET");
+const LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET = defineSecret("LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET");
+const LEMON_SQUEEZY_STORE_URL = defineString("LEMON_SQUEEZY_STORE_URL");
+const LEMON_SQUEEZY_VARIANT_ID = defineString("LEMON_SQUEEZY_VARIANT_ID");
 
 const ADMIN_EMAILS = [
     "4242fire@gmail.com",
@@ -177,6 +182,56 @@ const callGeminiWithFallback = async ({ base64, prompt, models }) => {
 const normalizeHex = (value, fallback) => {
     const raw = String(value || "").trim();
     return /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw : fallback;
+};
+
+const normalizeHost = (value) =>
+    String(value || "")
+        .trim()
+        .replace(/^https?:\/\//i, "")
+        .replace(/\/+$/, "");
+
+const getLemonCheckoutConfig = () => {
+    const storeUrl = normalizeHost(LEMON_SQUEEZY_STORE_URL.value());
+    const variantId = String(LEMON_SQUEEZY_VARIANT_ID.value() || "").trim();
+
+    if (!storeUrl || !variantId) {
+        throw new HttpsError("failed-precondition", "Lemon Squeezy checkout is not configured.");
+    }
+
+    return { storeUrl, variantId };
+};
+
+const getCheckoutSigningSecret = () => {
+    const secret = String(LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET.value() || "").trim();
+    if (!secret) {
+        throw new Error("Missing LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET secret.");
+    }
+    return secret;
+};
+
+const createCheckoutSignature = ({ eventId, userId, variantId }) =>
+    crypto
+        .createHmac("sha256", getCheckoutSigningSecret())
+        .update(`checkout:${eventId}:${userId}:${variantId}`)
+        .digest("hex");
+
+const parseHexBuffer = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!/^[0-9a-f]+$/.test(normalized) || normalized.length % 2 !== 0) {
+        return null;
+    }
+    return Buffer.from(normalized, "hex");
+};
+
+const safeHexEqual = (expectedValue, actualValue) => {
+    const expected = parseHexBuffer(expectedValue);
+    const actual = parseHexBuffer(actualValue);
+
+    if (!expected || !actual || expected.length !== actual.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(expected, actual);
 };
 
 /**
@@ -523,6 +578,45 @@ Constraints:
     }
 );
 
+exports.createLemonSqueezyCheckout = onCall(
+    {
+        region: "asia-northeast3",
+        secrets: [LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET]
+    },
+    async (request) => {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Login required.");
+        }
+
+        const eventId = String(request.data?.eventId || "").trim();
+        if (!eventId) {
+            throw new HttpsError("invalid-argument", "eventId is required.");
+        }
+
+        const eventDoc = await getEventDoc(eventId);
+        const eventData = eventDoc.data() || {};
+        const manager = await isEventManager(request, eventId, eventData);
+
+        if (!manager) {
+            throw new HttpsError("permission-denied", "Event managers only.");
+        }
+
+        const { storeUrl, variantId } = getLemonCheckoutConfig();
+        const userId = request.auth.uid;
+        const signature = createCheckoutSignature({ eventId, userId, variantId });
+        const checkoutUrl = new URL(`https://${storeUrl}/checkout/buy/${variantId}`);
+
+        checkoutUrl.searchParams.set("checkout[custom][eventId]", eventId);
+        checkoutUrl.searchParams.set("checkout[custom][userId]", userId);
+        checkoutUrl.searchParams.set("checkout[custom][variantId]", variantId);
+        checkoutUrl.searchParams.set("checkout[custom][signature]", signature);
+
+        return {
+            url: checkoutUrl.toString()
+        };
+    }
+);
+
 exports.deletePerformer = onCall({ region: "asia-northeast3", invoker: "public" }, async (request) => {
     requireAdmin(request);
 
@@ -597,3 +691,81 @@ exports.verifyTicket = onCall({ region: "asia-northeast3", invoker: "public" }, 
         checkedInAt: data.checkedInAt || null
     };
 });
+
+exports.lemonSqueezyWebhook = onRequest(
+    {
+        region: "asia-northeast3",
+        secrets: [LEMON_SQUEEZY_WEBHOOK_SECRET, LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET]
+    },
+    async (req, res) => {
+        try {
+            const webhookSecret = String(LEMON_SQUEEZY_WEBHOOK_SECRET.value() || "").trim();
+            if (!webhookSecret || !req.rawBody) {
+                console.error("[LemonSqueezy] Missing webhook secret or raw body");
+                return res.status(500).send("Webhook not configured");
+            }
+
+            const digest = crypto.createHmac("sha256", webhookSecret).update(req.rawBody).digest("hex");
+            const signature = req.get("X-Signature") || "";
+
+            if (!safeHexEqual(digest, signature)) {
+                console.error("[LemonSqueezy] Invalid signature");
+                return res.status(401).send("Invalid signature");
+            }
+
+            const body = req.body || {};
+            const eventName = body?.meta?.event_name;
+            const customData = body?.meta?.custom_data || {};
+
+            if (eventName === "order_created") {
+                const eventId = String(customData.eventId || "").trim();
+                const userId = String(customData.userId || "").trim();
+                const variantId = String(customData.variantId || "").trim();
+                const checkoutSignature = String(customData.signature || "").trim();
+                const expectedVariantId = getLemonCheckoutConfig().variantId;
+
+                if (!eventId || !userId || !variantId || !checkoutSignature) {
+                    console.error("[LemonSqueezy] Missing custom_data fields");
+                    return res.status(400).send("Missing custom data");
+                }
+
+                if (variantId !== expectedVariantId) {
+                    console.error("[LemonSqueezy] Unexpected variantId", variantId);
+                    return res.status(400).send("Unexpected variant");
+                }
+
+                const expectedSignature = createCheckoutSignature({ eventId, userId, variantId });
+                if (!safeHexEqual(expectedSignature, checkoutSignature)) {
+                    console.error("[LemonSqueezy] Invalid checkout signature");
+                    return res.status(401).send("Invalid checkout signature");
+                }
+
+                const eventRef = db.collection("events").doc(eventId);
+                const eventSnapshot = await eventRef.get();
+                if (!eventSnapshot.exists) {
+                    console.error("[LemonSqueezy] Event not found", eventId);
+                    return res.status(404).send("Event not found");
+                }
+
+                console.log(`[LemonSqueezy] Received order_created for eventId: ${eventId}, userId: ${userId}`);
+
+                await eventRef.set({
+                    billing: {
+                        tier: "plus",
+                        price: 9900,
+                        purchasedAt: new Date().toISOString(),
+                        purchasedBy: userId,
+                        provider: "lemonsqueezy",
+                        variantId
+                    }
+                }, { merge: true });
+                console.log(`[LemonSqueezy] Successfully upgraded event ${eventId} to PLUS`);
+            }
+
+            res.status(200).send("OK");
+        } catch (error) {
+            console.error("[LemonSqueezy] Webhook Error:", error);
+            res.status(500).send("Internal Server Error");
+        }
+    }
+);

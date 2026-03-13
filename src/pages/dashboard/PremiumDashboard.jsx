@@ -2,9 +2,10 @@ import React from 'react';
 import { Crown, Check, X, Zap, Users } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
+import { functions, httpsCallable } from '../../api/firebase';
 import { TIER_PRICES, getTierColor } from '../../utils/permissions';
 import { useAuth } from '../../contexts/AuthContext';
-
+import { useEvent } from '../../contexts/EventContext';
 /* ─────────────────────────── Data ─────────────────────────── */
 
 const EVENT_FEATURES = [
@@ -49,6 +50,38 @@ const FeatureMark = ({ enabled, color }) => (
 /* ──────────────────── Component ───────────────────── */
 
 const PremiumDashboard = () => {
+  const { eventData, billing } = useEvent();
+  const { user } = useAuth();
+  const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
+  const [checkoutError, setCheckoutError] = React.useState('');
+
+  const canStartCheckout = Boolean(eventData?.id && user?.uid);
+  const isPlus = billing?.tier === 'plus';
+
+  const handleCheckoutClick = React.useCallback(async () => {
+    if (!canStartCheckout || isCheckoutLoading) return;
+
+    setCheckoutError('');
+    setIsCheckoutLoading(true);
+
+    try {
+      const createCheckout = httpsCallable(functions, 'createLemonSqueezyCheckout');
+      const response = await createCheckout({ eventId: eventData.id });
+      const checkoutUrl = String(response.data?.url || '').trim();
+
+      if (!checkoutUrl.startsWith('https://')) {
+        throw new Error('Checkout URL was not returned.');
+      }
+
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      console.error('Checkout initialization failed:', error);
+      setCheckoutError('결제 링크를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  }, [canStartCheckout, eventData?.id, isCheckoutLoading]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* ── Header ── */}
@@ -210,23 +243,80 @@ const PremiumDashboard = () => {
                 </div>
 
                 {/* CTA */}
-                <GlassButton
-                  variant={plan.id === 'free' ? 'ghost' : 'primary'}
-                  size="md"
-                  disabled
-                  style={{
-                    width: '100%',
-                    marginTop: 'auto',
-                    justifyContent: 'center',
-                    opacity: 0.7,
-                    ...(plan.id !== 'free' ? {
-                      background: `linear-gradient(135deg, ${plan.color}, ${plan.color}cc)`,
-                      boxShadow: `0 4px 14px ${plan.color}30`,
-                    } : {}),
-                  }}
-                >
-                  {plan.id === 'free' ? '기본 제공' : 'Coming Soon'}
-                </GlassButton>
+                {plan.id === 'plus' ? (
+                  isPlus ? (
+                    <GlassButton
+                      variant="primary"
+                      size="md"
+                      disabled
+                      style={{
+                        width: '100%',
+                        marginTop: 'auto',
+                        justifyContent: 'center',
+                        opacity: 0.9,
+                        background: '#10b981',
+                        color: 'white',
+                      }}
+                    >
+                      <Check size={16} /> 이용 중
+                    </GlassButton>
+                  ) : (
+                    <>
+                    <GlassButton
+                      variant="primary"
+                      size="md"
+                      onClick={handleCheckoutClick}
+                      disabled={!canStartCheckout || isCheckoutLoading}
+                      style={{
+                        width: '100%',
+                        marginTop: 'auto',
+                        justifyContent: 'center',
+                        background: `linear-gradient(135deg, ${plan.color}, ${plan.color}cc)`,
+                        boxShadow: `0 4px 14px ${plan.color}30`,
+                        color: 'white',
+                      }}
+                    >
+                      {isCheckoutLoading ? '준비 중...' : '결제하기'}
+                    </GlassButton>
+                    {checkoutError && (
+                      <p style={{
+                        margin: '0.5rem 0 0',
+                        color: '#fca5a5',
+                        fontSize: '0.75rem',
+                        lineHeight: 1.5,
+                        fontFamily: 'var(--font-main)',
+                      }}>
+                        {checkoutError}
+                      </p>
+                    )}
+                    {!canStartCheckout && (
+                      <p style={{
+                        margin: '0.5rem 0 0',
+                        color: 'var(--text-tertiary)',
+                        fontSize: '0.75rem',
+                        lineHeight: 1.5,
+                        fontFamily: 'var(--font-main)',
+                      }}>
+                        이벤트 관리자 로그인 후 결제를 진행할 수 있습니다.
+                      </p>
+                    )}
+                    </>
+                  )
+                ) : (
+                  <GlassButton
+                    variant="ghost"
+                    size="md"
+                    disabled
+                    style={{
+                      width: '100%',
+                      marginTop: 'auto',
+                      justifyContent: 'center',
+                      opacity: 0.7,
+                    }}
+                  >
+                    기본 제공
+                  </GlassButton>
+                )}
               </GlassCard>
             );
           })}

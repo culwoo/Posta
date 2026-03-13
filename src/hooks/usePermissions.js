@@ -10,7 +10,8 @@ import { canAccessFeature, getTierLabel, getTierColor } from '../utils/permissio
  *   const { allowed, requiredTier, price } = canAccess('adFree');
  */
 export function usePermissions() {
-  const { billing } = useEvent();
+  const eventContext = useEvent();
+  const billing = eventContext?.billing;
 
   const canAccess = useCallback(
     (feature) => canAccessFeature(billing, {}, feature), // second argument (userPremium) is deprecated

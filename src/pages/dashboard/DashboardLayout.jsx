@@ -5,7 +5,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { LogOut, Home, BarChart2, Settings, User, Users, Menu, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
-import { PremiumBadge } from '../../components/features/PremiumBadge';
 const makeSidebarStyle = (collapsed) => ({
     width: collapsed ? '68px' : '250px',
     display: 'flex',
