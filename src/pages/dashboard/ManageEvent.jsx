@@ -272,7 +272,10 @@ const ManageEvent = () => {
 
         const iframe = document.getElementById('preview-iframe');
         if (iframe?.contentWindow) {
-            iframe.contentWindow.postMessage({ type: 'previewThemeUpdate', theme: themeUpdate }, '*');
+            iframe.contentWindow.postMessage(
+                { type: 'previewThemeUpdate', theme: themeUpdate },
+                window.location.origin
+            );
         }
     }, [accentColor, bgColor, bgSecondaryColor, eventId, fontMain, fontNote, primaryColor, secondaryColor, textColor]);
 
@@ -478,7 +481,23 @@ const ManageEvent = () => {
             try {
                 const imageBase64 = await toBase64(file);
                 const callable = httpsCallable(functions, 'extractPosterColors');
-                const response = await callable({ eventId, imageBase64 });
+
+                let response;
+                const maxRetries = 2;
+                for (let attempt = 0; attempt < maxRetries; attempt++) {
+                    try {
+                        response = await callable({ eventId, imageBase64 });
+                        break;
+                    } catch (callError) {
+                        if (attempt < maxRetries - 1) {
+                            console.warn(`Color extraction attempt ${attempt + 1} failed, retrying...`, callError);
+                            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+                        } else {
+                            throw callError;
+                        }
+                    }
+                }
+
                 const colors = response.data?.colors;
                 if (!colors) throw new Error('No colors in response');
 

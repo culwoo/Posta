@@ -111,10 +111,14 @@ export const EventProvider = ({ children }) => {
 
         // 3. Live preview message listener from editor
         const handleMessage = (e) => {
-            if (e.data?.type === 'previewThemeUpdate' && e.data?.theme) {
+            if (e.origin !== window.location.origin || typeof e.data !== 'object' || e.data === null) {
+                return;
+            }
+
+            if (e.data.type === 'previewThemeUpdate' && e.data.theme) {
                 setCSSVariables(e.data.theme);
             }
-            if (e.data?.type === 'previewPosterUpdate' && e.data?.posterUrl) {
+            if (e.data.type === 'previewPosterUpdate' && e.data.posterUrl) {
                 setEventData(prev => prev ? { ...prev, posterUrl: e.data.posterUrl } : prev);
             }
         };
