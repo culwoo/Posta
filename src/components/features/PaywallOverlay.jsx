@@ -5,6 +5,9 @@ import { Lock } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import GlassButton from '../ui/GlassButton';
 import { getTierLabel, getTierColor, TIER_PRICES } from '../../utils/permissions';
+import { useAuth } from '../../contexts/AuthContext';
+import { useEvent } from '../../contexts/EventContext';
+import { openCheckout } from '../../utils/checkout';
 
 /**
  * Blur overlay shown when a user doesn't have access to a feature.
@@ -12,11 +15,30 @@ import { getTierLabel, getTierColor, TIER_PRICES } from '../../utils/permissions
  */
 export function PaywallOverlay({ featureName, requiredTier, currentTier, price }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { eventData } = useEvent();
+  const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
 
   const displayPrice = price || TIER_PRICES[requiredTier] || 0;
   const requiredLabel = getTierLabel(requiredTier);
   const requiredColor = getTierColor(requiredTier);
   const currentLabel = getTierLabel(currentTier);
+
+  // 현재 로그인한 사용자가 이벤트 생성자인지 (주최자인지) 확인
+  const isOrganizer = Boolean(user?.uid && eventData?.createdBy === user.uid);
+
+  const handleCheckoutClick = React.useCallback(async () => {
+    if (!eventData?.id || isCheckoutLoading) return;
+    setIsCheckoutLoading(true);
+    try {
+      await openCheckout(eventData.id);
+      setTimeout(() => setIsCheckoutLoading(false), 3000);
+    } catch (error) {
+      console.error('Checkout initialization failed:', error);
+      alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      setIsCheckoutLoading(false);
+    }
+  }, [eventData?.id, isCheckoutLoading]);
 
   return (
     <div style={{
@@ -55,60 +77,62 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
             fontSize: '1.25rem',
             fontWeight: 700,
             color: 'var(--text-primary)',
-            marginBottom: '0.5rem',
+            marginBottom: '0.75rem',
             letterSpacing: '-0.02em',
           }}>
-            이 기능은 {requiredLabel} 패스가 필요합니다.
+            응원 게시판
           </h3>
 
-          {/* Current tier */}
+          {/* Feature description */}
           <p style={{
             fontSize: '0.875rem',
-            color: 'var(--ui-text-muted, rgba(255,255,255,0.5))',
+            color: 'var(--ui-text-muted, rgba(255,255,255,0.6))',
             marginBottom: '1.25rem',
-            lineHeight: 1.5,
+            lineHeight: 1.6,
           }}>
-            현재 <span style={{
-              color: getTierColor(currentTier),
-              fontWeight: 600,
-            }}>{currentLabel}</span> 플랜을 사용 중입니다.
-            <br />
-            응원 게시판과 광고 없는 쾌적한 화면을 위해
-            <span style={{
-              color: requiredColor,
-              fontWeight: 600,
-              marginLeft: '0.2rem',
-            }}>{requiredLabel} 패스</span>로 업그레이드하세요.
+            관객들이 공연에 대한 응원, 감상, 추억을
+            <br />자유롭게 남기는 소통 공간이에요.
           </p>
 
-          {/* Price */}
-          <div style={{
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            marginBottom: '1.5rem',
-            letterSpacing: '-0.03em',
-          }}>
-            ₩{displayPrice.toLocaleString()}
-            <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 400,
-              color: 'var(--ui-text-muted, rgba(255,255,255,0.5))',
-              marginLeft: '0.25rem',
-            }}>
-              / 공연
-            </span>
-          </div>
-
           {/* CTA */}
-          <GlassButton
-            variant="primary"
-            size="lg"
-            onClick={() => navigate('/dashboard/premium')}
-            style={{ width: '100%', marginBottom: '0.75rem' }}
-          >
-            {requiredLabel} 업그레이드
-          </GlassButton>
+          {isOrganizer ? (
+            <>
+              <div style={{
+                fontSize: '0.8rem',
+                color: 'var(--ui-text-muted, rgba(255,255,255,0.45))',
+                marginBottom: '0.75rem',
+              }}>
+                <span style={{ color: requiredColor, fontWeight: 600 }}>{requiredLabel} Pass</span> ₩{displayPrice.toLocaleString()} / 공연
+              </div>
+              <GlassButton
+                variant="primary"
+                size="lg"
+                onClick={handleCheckoutClick}
+                disabled={isCheckoutLoading}
+                style={{ width: '100%', marginBottom: '0.75rem' }}
+              >
+                {isCheckoutLoading ? '결제 창 준비 중...' : '응원 게시판 열기'}
+              </GlassButton>
+              <GlassButton
+                variant="secondary"
+                size="md"
+                onClick={() => navigate('/dashboard/pricing')}
+                style={{ width: '100%', marginBottom: '0.75rem' }}
+              >
+                요금제 자세히 보기
+              </GlassButton>
+            </>
+          ) : (
+             <p style={{
+               fontSize: '0.875rem',
+               color: 'var(--ui-text-muted, rgba(255,255,255,0.5))',
+               marginBottom: '1.25rem',
+               lineHeight: 1.6,
+             }}>
+               이 공연의 주최자가 응원 게시판을 열면
+               <br />이곳에서 자유롭게 응원을 남길 수 있어요.
+             </p>
+          )}
 
           <button
             onClick={() => navigate(-1)}

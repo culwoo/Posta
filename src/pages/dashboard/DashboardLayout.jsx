@@ -60,7 +60,7 @@ const DashboardLayout = () => {
         { to: '/dashboard', label: '이벤트', icon: Home, match: desktopNavItems[0].match },
         { to: '/dashboard/audience', label: '관객', icon: Users, match: desktopNavItems[1].match },
         { to: '/dashboard/analytics', label: '정산', icon: BarChart2, match: desktopNavItems[2].match },
-        { to: '/dashboard/more', label: '더보기', icon: Menu, match: (path) => path.startsWith('/dashboard/more') || path.startsWith('/dashboard/settings') || path.startsWith('/dashboard/premium') }
+        { to: '/dashboard/more', label: '더보기', icon: Menu, match: (path) => path.startsWith('/dashboard/more') || path.startsWith('/dashboard/settings') || path.startsWith('/dashboard/pricing') }
     ]), [desktopNavItems]);
 
     if (!loading && !user) {

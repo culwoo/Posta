@@ -1,11 +1,15 @@
 import React from 'react';
-import { Crown, Check, X, Zap, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Crown, Check, X, Zap, Users, MessageCircleHeart, Calendar } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
-import { functions, httpsCallable } from '../../api/firebase';
+import GlassToast from '../../components/ui/GlassToast';
+import { db, doc, onSnapshot } from '../../api/firebase';
 import { TIER_PRICES, getTierColor } from '../../utils/permissions';
 import { useAuth } from '../../contexts/AuthContext';
-import { useEvent } from '../../contexts/EventContext';
+import { getManagedEvents } from '../../utils/dashboardData';
+import { openCheckout } from '../../utils/checkout';
+
 /* ─────────────────────────── Data ─────────────────────────── */
 
 const EVENT_FEATURES = [
@@ -22,7 +26,7 @@ const eventPlans = [
     name: 'Free',
     price: TIER_PRICES.free,
     period: '/ 공연',
-    description: 'Posta 생태계의 모든 강력한 기능을 무료로 시작하세요.',
+    description: 'Posta의 모든 핵심 기능을 무료로 시작하세요.',
     icon: Users,
     color: getTierColor('free'),
     highlight: false,
@@ -31,8 +35,8 @@ const eventPlans = [
     id: 'plus',
     name: 'Plus Pass',
     price: TIER_PRICES.plus,
-    period: '/ 공연',
-    description: '광고 없는 쾌적한 화면과 열려있는 소통 창구를 관객에게 제공하세요.',
+    period: '/ 공연 (일회성)',
+    description: '관객과 소통하는 응원 게시판을 열고, 광고 없는 쾌적한 화면을 제공하세요.',
     icon: Zap,
     color: getTierColor('plus'),
     highlight: true,
@@ -50,37 +54,66 @@ const FeatureMark = ({ enabled, color }) => (
 /* ──────────────────── Component ───────────────────── */
 
 const PremiumDashboard = () => {
-  const { eventData, billing } = useEvent();
   const { user } = useAuth();
-  const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
-  const [checkoutError, setCheckoutError] = React.useState('');
+  const [events, setEvents] = React.useState([]);
+  const [eventsLoading, setEventsLoading] = React.useState(true);
+  const [checkoutLoadingId, setCheckoutLoadingId] = React.useState(null);
+  const [showToast, setShowToast] = React.useState(false);
 
-  const canStartCheckout = Boolean(eventData?.id && user?.uid);
-  const isPlus = billing?.tier === 'plus';
-
-  const handleCheckoutClick = React.useCallback(async () => {
-    if (!canStartCheckout || isCheckoutLoading) return;
-
-    setCheckoutError('');
-    setIsCheckoutLoading(true);
-
-    try {
-      const createCheckout = httpsCallable(functions, 'createLemonSqueezyCheckout');
-      const response = await createCheckout({ eventId: eventData.id });
-      const checkoutUrl = String(response.data?.url || '').trim();
-
-      if (!checkoutUrl.startsWith('https://')) {
-        throw new Error('Checkout URL was not returned.');
+  // Fetch user's events
+  React.useEffect(() => {
+    if (!user?.uid) { setEventsLoading(false); return; }
+    const load = async () => {
+      try {
+        const allEvents = await getManagedEvents(user.uid);
+        // Only show events where user is organizer
+        setEvents(allEvents.filter(e => e.userRole === 'organizer'));
+      } catch (err) {
+        console.error('Failed to load events:', err);
+      } finally {
+        setEventsLoading(false);
       }
+    };
+    load();
+  }, [user?.uid]);
 
-      window.location.assign(checkoutUrl);
+  // Real-time billing listener for all organizer events
+  React.useEffect(() => {
+    if (!events.length) return;
+    const unsubs = events.map(ev =>
+      onSnapshot(doc(db, 'events', ev.id), (snap) => {
+        if (!snap.exists()) return;
+        const newTier = snap.data().billing?.tier || 'free';
+        setEvents(prev => prev.map(e => {
+          if (e.id !== ev.id) return e;
+          const oldTier = e.billing?.tier || 'free';
+          if (oldTier !== 'plus' && newTier === 'plus') {
+            setShowToast(true);
+            setCheckoutLoadingId(null);
+            setTimeout(() => setShowToast(false), 3000);
+          }
+          return { ...e, billing: { ...e.billing, tier: newTier } };
+        }));
+      })
+    );
+    return () => unsubs.forEach(u => u());
+  }, [events.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCheckout = React.useCallback(async (eventId) => {
+    if (checkoutLoadingId) return;
+    setCheckoutLoadingId(eventId);
+    try {
+      await openCheckout(eventId);
+      setTimeout(() => setCheckoutLoadingId(null), 3000);
     } catch (error) {
-      console.error('Checkout initialization failed:', error);
-      setCheckoutError('결제 링크를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setIsCheckoutLoading(false);
+      console.error('Checkout failed:', error);
+      alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      setCheckoutLoadingId(null);
     }
-  }, [canStartCheckout, eventData?.id, isCheckoutLoading]);
+  }, [checkoutLoadingId]);
+
+  const freeEvents = events.filter(e => (e.billing?.tier || 'free') !== 'plus');
+  const plusEvents = events.filter(e => (e.billing?.tier || 'free') === 'plus');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -105,11 +138,56 @@ const PremiumDashboard = () => {
           fontSize: '0.9rem',
           fontFamily: 'var(--font-main)',
         }}>
-          관객 경험을 극대화하는 Plus 패스로 멋진 공연을 완성하세요.
+          공연별로 Plus Pass를 적용하여 관객 경험을 한 단계 높이세요.
         </p>
       </div>
 
-      {/* ═══════════════ Section 1: Event Pass ═══════════════ */}
+      {/* ═══════════════ 응원 게시판 소개 ═══════════════ */}
+      <GlassCard level={2} style={{
+        padding: '1.5rem',
+        background: 'linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(168,85,247,0.03) 100%)',
+        border: '1px solid rgba(139,92,246,0.15)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <MessageCircleHeart size={24} style={{ color: '#fff' }} />
+          </div>
+          <div>
+            <h3 style={{
+              margin: '0 0 0.4rem',
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-main)',
+              letterSpacing: '-0.02em',
+            }}>
+              응원 게시판이란?
+            </h3>
+            <p style={{
+              margin: 0,
+              fontSize: '0.85rem',
+              color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-main)',
+              lineHeight: 1.65,
+            }}>
+              관객들이 공연에 대한 응원, 감상, 추억을 자유롭게 남기는 소통 공간이에요.
+              공연 전 설렘, 공연 중 감동, 공연 후 여운까지 — 관객의 목소리가 모여
+              공연을 더 특별하게 만듭니다.
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ═══════════════ Section: Plan Comparison ═══════════════ */}
       <div>
         <h3 style={{
           margin: '0 0 0.75rem',
@@ -153,7 +231,6 @@ const PremiumDashboard = () => {
                   } : {}),
                 }}
               >
-                {/* Popular badge */}
                 {plan.highlight && (
                   <div style={{
                     position: 'absolute',
@@ -173,7 +250,6 @@ const PremiumDashboard = () => {
                   </div>
                 )}
 
-                {/* Plan name + icon */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
                   <Icon size={16} style={{ color: plan.color }} />
                   <span style={{
@@ -187,7 +263,6 @@ const PremiumDashboard = () => {
                   </span>
                 </div>
 
-                {/* Description */}
                 <p style={{
                   margin: '0 0 0.75rem',
                   color: 'var(--text-tertiary)',
@@ -198,7 +273,6 @@ const PremiumDashboard = () => {
                   {plan.description}
                 </p>
 
-                {/* Price */}
                 <div style={{
                   fontSize: '1.75rem',
                   fontWeight: 800,
@@ -220,8 +294,7 @@ const PremiumDashboard = () => {
                   )}
                 </div>
 
-                {/* Feature checklist */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {EVENT_FEATURES.map((f) => {
                     const enabled = f[plan.id];
                     return (
@@ -241,86 +314,138 @@ const PremiumDashboard = () => {
                     );
                   })}
                 </div>
-
-                {/* CTA */}
-                {plan.id === 'plus' ? (
-                  isPlus ? (
-                    <GlassButton
-                      variant="primary"
-                      size="md"
-                      disabled
-                      style={{
-                        width: '100%',
-                        marginTop: 'auto',
-                        justifyContent: 'center',
-                        opacity: 0.9,
-                        background: '#10b981',
-                        color: 'white',
-                      }}
-                    >
-                      <Check size={16} /> 이용 중
-                    </GlassButton>
-                  ) : (
-                    <>
-                    <GlassButton
-                      variant="primary"
-                      size="md"
-                      onClick={handleCheckoutClick}
-                      disabled={!canStartCheckout || isCheckoutLoading}
-                      style={{
-                        width: '100%',
-                        marginTop: 'auto',
-                        justifyContent: 'center',
-                        background: `linear-gradient(135deg, ${plan.color}, ${plan.color}cc)`,
-                        boxShadow: `0 4px 14px ${plan.color}30`,
-                        color: 'white',
-                      }}
-                    >
-                      {isCheckoutLoading ? '준비 중...' : '결제하기'}
-                    </GlassButton>
-                    {checkoutError && (
-                      <p style={{
-                        margin: '0.5rem 0 0',
-                        color: '#fca5a5',
-                        fontSize: '0.75rem',
-                        lineHeight: 1.5,
-                        fontFamily: 'var(--font-main)',
-                      }}>
-                        {checkoutError}
-                      </p>
-                    )}
-                    {!canStartCheckout && (
-                      <p style={{
-                        margin: '0.5rem 0 0',
-                        color: 'var(--text-tertiary)',
-                        fontSize: '0.75rem',
-                        lineHeight: 1.5,
-                        fontFamily: 'var(--font-main)',
-                      }}>
-                        이벤트 관리자 로그인 후 결제를 진행할 수 있습니다.
-                      </p>
-                    )}
-                    </>
-                  )
-                ) : (
-                  <GlassButton
-                    variant="ghost"
-                    size="md"
-                    disabled
-                    style={{
-                      width: '100%',
-                      marginTop: 'auto',
-                      justifyContent: 'center',
-                      opacity: 0.7,
-                    }}
-                  >
-                    기본 제공
-                  </GlassButton>
-                )}
               </GlassCard>
             );
           })}
         </div>
+      </div>
+
+      {/* ═══════════════ Section: My Events ═══════════════ */}
+      <div>
+        <h3 style={{
+          margin: '0 0 0.75rem',
+          fontSize: '1.05rem',
+          fontWeight: 600,
+          fontFamily: 'var(--font-main)',
+          color: 'var(--text-primary)',
+          letterSpacing: '-0.02em',
+        }}>
+          내 이벤트 현황
+        </h3>
+
+        {eventsLoading ? (
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', fontFamily: 'var(--font-main)' }}>
+            이벤트를 불러오는 중...
+          </p>
+        ) : events.length === 0 ? (
+          <GlassCard level={2} style={{ padding: '2rem', textAlign: 'center' }}>
+            <p style={{
+              margin: '0 0 0.75rem',
+              color: 'var(--text-tertiary)',
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-main)',
+            }}>
+              아직 만든 이벤트가 없어요.
+            </p>
+            <Link
+              to="/dashboard/create"
+              style={{
+                display: 'inline-block',
+                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                color: '#fff',
+                padding: '0.5rem 1.2rem',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              + 새 이벤트 만들기
+            </Link>
+          </GlassCard>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {/* Plus events first, then free events */}
+            {[...plusEvents, ...freeEvents].map((ev) => {
+              const isPlus = (ev.billing?.tier || 'free') === 'plus';
+              const isLoading = checkoutLoadingId === ev.id;
+              return (
+                <GlassCard
+                  key={ev.id}
+                  level={2}
+                  style={{
+                    padding: '1rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                    ...(isPlus ? {
+                      border: '1px solid rgba(16,185,129,0.2)',
+                      background: 'rgba(16,185,129,0.04)',
+                    } : {}),
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: '150px' }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      color: 'var(--text-primary)',
+                      fontFamily: 'var(--font-main)',
+                      marginBottom: '0.2rem',
+                    }}>
+                      {ev.title || '(제목 없음)'}
+                    </div>
+                    {ev.date && (
+                      <div style={{
+                        fontSize: '0.78rem',
+                        color: 'var(--text-tertiary)',
+                        fontFamily: 'var(--font-main)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}>
+                        <Calendar size={12} /> {ev.date}
+                      </div>
+                    )}
+                  </div>
+
+                  {isPlus ? (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      color: '#10b981',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-main)',
+                    }}>
+                      <Check size={14} /> Plus 이용 중
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleCheckout(ev.id)}
+                      disabled={!!checkoutLoadingId}
+                      style={{
+                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.45rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: checkoutLoadingId ? 'wait' : 'pointer',
+                        whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 8px rgba(139,92,246,0.25)',
+                      }}
+                    >
+                      {isLoading ? '준비 중...' : 'Plus 결제하기'}
+                    </button>
+                  )}
+                </GlassCard>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Footer note ── */}
@@ -336,9 +461,16 @@ const PremiumDashboard = () => {
         borderRadius: '12px',
         border: '1px solid rgba(255, 255, 255, 0.05)',
       }}>
-        결제 시스템은 정식 서비스 출시 후 활성화될 예정입니다.<br />
+        결제는 Lemon Squeezy를 통해 안전하게 처리됩니다.<br />
         모든 유료 상품은 환불이 불가합니다.
       </div>
+
+      <GlassToast
+        isVisible={showToast}
+        message="Plus 패스가 활성화되었습니다!"
+        onClose={() => setShowToast(false)}
+        type="success"
+      />
     </div>
   );
 };

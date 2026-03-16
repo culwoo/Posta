@@ -71,16 +71,16 @@ const AdBanner = ({ placement = 'dashboard', style = {}, showPromo = true, showA
                         </div>
                         <div>
                             <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1f2937' }}>
-                                Posta Premium으로 업그레이드
+                                Plus Pass로 관객과 더 가까이
                             </div>
                             <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '2px' }}>
-                                광고 제거 · 무제한 이벤트 · 커스텀 테마
+                                응원 게시판 · 광고 없는 쾌적한 관객 화면
                             </div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                         <Link
-                            to="/dashboard/premium"
+                            to="/dashboard/pricing"
                             style={{
                                 background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
                                 color: '#fff',

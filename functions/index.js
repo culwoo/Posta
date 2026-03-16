@@ -27,7 +27,8 @@ const PUBLIC_BASE_URL = defineSecret("PUBLIC_BASE_URL");
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 const LEMON_SQUEEZY_WEBHOOK_SECRET = defineSecret("LEMON_SQUEEZY_WEBHOOK_SECRET");
 const LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET = defineSecret("LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET");
-const LEMON_SQUEEZY_STORE_URL = defineString("LEMON_SQUEEZY_STORE_URL");
+const LEMON_SQUEEZY_API_KEY = defineSecret("LEMON_SQUEEZY_API_KEY");
+const LEMON_SQUEEZY_STORE_ID = defineString("LEMON_SQUEEZY_STORE_ID");
 const LEMON_SQUEEZY_VARIANT_ID = defineString("LEMON_SQUEEZY_VARIANT_ID");
 
 const ADMIN_EMAILS = [
@@ -191,14 +192,14 @@ const normalizeHost = (value) =>
         .replace(/\/+$/, "");
 
 const getLemonCheckoutConfig = () => {
-    const storeUrl = normalizeHost(LEMON_SQUEEZY_STORE_URL.value());
+    const storeId = String(LEMON_SQUEEZY_STORE_ID.value() || "").trim();
     const variantId = String(LEMON_SQUEEZY_VARIANT_ID.value() || "").trim();
 
-    if (!storeUrl || !variantId) {
+    if (!storeId || !variantId) {
         throw new HttpsError("failed-precondition", "Lemon Squeezy checkout is not configured.");
     }
 
-    return { storeUrl, variantId };
+    return { storeId, variantId };
 };
 
 const getCheckoutSigningSecret = () => {
@@ -581,7 +582,7 @@ Constraints:
 exports.createLemonSqueezyCheckout = onCall(
     {
         region: "asia-northeast3",
-        secrets: [LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET]
+        secrets: [LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET, LEMON_SQUEEZY_API_KEY]
     },
     async (request) => {
         if (!request.auth?.uid) {
@@ -601,19 +602,63 @@ exports.createLemonSqueezyCheckout = onCall(
             throw new HttpsError("permission-denied", "Event managers only.");
         }
 
-        const { storeUrl, variantId } = getLemonCheckoutConfig();
+        const { storeId, variantId } = getLemonCheckoutConfig();
+        const apiKey = String(LEMON_SQUEEZY_API_KEY.value() || "").trim();
+        if (!apiKey) {
+            throw new HttpsError("failed-precondition", "Lemon Squeezy API key is not configured.");
+        }
+
         const userId = request.auth.uid;
         const signature = createCheckoutSignature({ eventId, userId, variantId });
-        const checkoutUrl = new URL(`https://${storeUrl}/checkout/buy/${variantId}`);
 
-        checkoutUrl.searchParams.set("checkout[custom][eventId]", eventId);
-        checkoutUrl.searchParams.set("checkout[custom][userId]", userId);
-        checkoutUrl.searchParams.set("checkout[custom][variantId]", variantId);
-        checkoutUrl.searchParams.set("checkout[custom][signature]", signature);
+        // Lemon Squeezy Checkout API로 세션 생성
+        const apiResponse = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/vnd.api+json",
+                "Accept": "application/vnd.api+json",
+            },
+            body: JSON.stringify({
+                data: {
+                    type: "checkouts",
+                    attributes: {
+                        checkout_data: {
+                            custom: {
+                                eventId,
+                                userId,
+                                variantId,
+                                signature,
+                            }
+                        }
+                    },
+                    relationships: {
+                        store: {
+                            data: { type: "stores", id: storeId }
+                        },
+                        variant: {
+                            data: { type: "variants", id: variantId }
+                        }
+                    }
+                }
+            })
+        });
 
-        return {
-            url: checkoutUrl.toString()
-        };
+        if (!apiResponse.ok) {
+            const errorText = await apiResponse.text();
+            console.error("[LemonSqueezy] Checkout API error:", apiResponse.status, errorText);
+            throw new HttpsError("internal", "결제 세션을 생성하지 못했습니다.");
+        }
+
+        const result = await apiResponse.json();
+        const checkoutUrl = result?.data?.attributes?.url;
+
+        if (!checkoutUrl) {
+            console.error("[LemonSqueezy] No checkout URL in response:", JSON.stringify(result));
+            throw new HttpsError("internal", "결제 URL을 받지 못했습니다.");
+        }
+
+        return { url: checkoutUrl };
     }
 );
 
@@ -724,6 +769,9 @@ exports.lemonSqueezyWebhook = onRequest(
                 const checkoutSignature = String(customData.signature || "").trim();
                 const expectedVariantId = getLemonCheckoutConfig().variantId;
 
+                // Extract orderId from Lemon Squeezy payload
+                const orderId = String(body?.data?.id || body?.data?.attributes?.order_number || "").trim();
+
                 if (!eventId || !userId || !variantId || !checkoutSignature) {
                     console.error("[LemonSqueezy] Missing custom_data fields");
                     return res.status(400).send("Missing custom data");
@@ -747,19 +795,47 @@ exports.lemonSqueezyWebhook = onRequest(
                     return res.status(404).send("Event not found");
                 }
 
-                console.log(`[LemonSqueezy] Received order_created for eventId: ${eventId}, userId: ${userId}`);
+                // Idempotency check: skip if already processed with the same orderId
+                const existingBilling = eventSnapshot.data()?.billing;
+                if (orderId && existingBilling?.orderId === orderId) {
+                    console.log(`[LemonSqueezy] Already processed orderId: ${orderId} for event: ${eventId}`);
+                    return res.status(200).send("Already processed");
+                }
 
-                await eventRef.set({
-                    billing: {
-                        tier: "plus",
-                        price: 9900,
-                        purchasedAt: new Date().toISOString(),
-                        purchasedBy: userId,
-                        provider: "lemonsqueezy",
-                        variantId
-                    }
-                }, { merge: true });
+                console.log(`[LemonSqueezy] Received order_created for eventId: ${eventId}, userId: ${userId}, orderId: ${orderId}`);
+
+                const billingData = {
+                    tier: "plus",
+                    price: 9900,
+                    purchasedAt: new Date().toISOString(),
+                    purchasedBy: userId,
+                    provider: "lemonsqueezy",
+                    variantId,
+                    orderId: orderId || null
+                };
+
+                await eventRef.set({ billing: billingData }, { merge: true });
                 console.log(`[LemonSqueezy] Successfully upgraded event ${eventId} to PLUS`);
+
+                // Save payment audit log (non-blocking: failure here should not affect webhook response)
+                try {
+                    await db.collection("payments").add({
+                        eventId,
+                        userId,
+                        provider: "lemonsqueezy",
+                        orderId: orderId || null,
+                        variantId,
+                        amount: 9900,
+                        currency: "KRW",
+                        status: "completed",
+                        lemonSqueezyEventName: eventName,
+                        createdAt: new Date().toISOString()
+                    });
+                    console.log(`[LemonSqueezy] Payment audit log saved for event: ${eventId}`);
+                } catch (auditError) {
+                    console.error("[LemonSqueezy] Failed to save payment audit log:", auditError);
+                    // Do NOT re-throw: the billing update already succeeded
+                }
             }
 
             res.status(200).send("OK");

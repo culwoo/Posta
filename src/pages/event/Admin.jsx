@@ -15,6 +15,8 @@ import {
 import { Search } from 'lucide-react';
 import { useEvent } from '../../contexts/EventContext';
 import AIProgressTimer from '../../components/AIProgressTimer';
+import AdminReservationForm from './admin/AdminReservationForm';
+import AdminBulkImport from './admin/AdminBulkImport';
 import classes from './Admin.module.css';
 
 const Admin = () => {
@@ -326,6 +328,7 @@ const Admin = () => {
                             (입금확인: {reservations.filter(r => r.depositConfirmed).length}명
                             / 제출 완료: {reservations.filter(r => !r.depositConfirmed && r.receiptUrl).length}명
                             / 미제출: {reservations.filter(r => !r.depositConfirmed && !r.receiptUrl).length}명
+                            {reservations.some(r => r.source === 'admin') && <> / 관리자 등록: {reservations.filter(r => r.source === 'admin').length}명</>}
                             {visitPurposes.length > 0 && <> | 미선택: {reservations.filter(r => !r.visitedFor).length}명
                                 {visitPurposes.map(p => (
                                     <span key={p}> / {p}: {reservations.filter(r => r.visitedFor === p).length}명</span>
@@ -384,10 +387,11 @@ const Admin = () => {
                             </thead>
                             <tbody>
                                 {filteredReservations.map(res => (
-                                    <tr key={res.id} className={classes[res.status]}>
+                                    <tr key={res.id} className={`${classes[res.status]} ${res.source === 'admin' ? classes.adminRow : ''}`}>
                                         <td>
                                             <div className={classes.reservationName}>
                                                 {res.name} {res.ticketCount > 1 && <span style={{ color: '#4caf50', marginLeft: '4px', fontSize: '0.9rem' }}>({res.ticketCount}장)</span>}
+                                                {res.source === 'admin' && <span className={classes.adminBadge}>관리자</span>}
                                                 {res.depositConfirmed ? (
                                                     <span style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', fontSize: '0.75rem', padding: '0.2rem 0.4rem', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 'bold' }}>예매 확정</span>
                                                 ) : eventData?.payment?.isFreeEvent ? (
@@ -532,6 +536,19 @@ const Admin = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div className={classes.card}>
+                    <h3>예약 추가</h3>
+                    <p className={classes.sectionHint}>
+                        이름과 연락처만 입력하면 빠르게 예약을 추가할 수 있습니다.
+                    </p>
+                    <AdminReservationForm eventId={eventId} />
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '1.2rem 0' }} />
+                    <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.3rem' }}>엑셀 / CSV 일괄 등록</h4>
+                    <p className={classes.sectionHint} style={{ marginBottom: '0.75rem' }}>
+                        구글폼 등에서 내보낸 파일로 예약을 일괄 등록합니다.
+                    </p>
+                    <AdminBulkImport eventId={eventId} />
                 </div>
                 <div className={classes.card}>
                     <h3>방문 목적 관리</h3>

@@ -57,7 +57,7 @@ function App() {
               <Route path="audience" element={<AudienceDashboard />} />
               <Route path="analytics" element={<AnalyticsDashboard />} />
               <Route path="settings" element={<SettingsDashboard />} />
-              <Route path="premium" element={<PremiumDashboard />} />
+              <Route path="pricing" element={<PremiumDashboard />} />
               <Route path="more" element={<MoreDashboard />} />
             </Route>
 

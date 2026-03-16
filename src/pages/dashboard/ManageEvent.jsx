@@ -8,6 +8,7 @@ import {
     getDoc,
     getDownloadURL,
     httpsCallable,
+    onSnapshot,
     storage,
     storageRef,
     updateDoc,
@@ -15,16 +16,19 @@ import {
 } from '../../api/firebase';
 import {
     ArrowLeft,
+    Check,
     ChevronDown,
     Clock3,
     Eye,
     ExternalLink,
     GripVertical,
     Maximize2,
+    MessageCircleHeart,
     Save,
     Trash2,
     Upload,
-    X
+    X,
+    Zap
 } from 'lucide-react';
 import styles from './ManageEvent.module.css';
 import { CSS } from '@dnd-kit/utilities';
@@ -214,6 +218,9 @@ const ManageEvent = () => {
     const [ticketPrice, setTicketPrice] = useState('');
     const [onsitePrice, setOnsitePrice] = useState('');
     const [isFreeEvent, setIsFreeEvent] = useState(false);
+
+    const [billingTier, setBillingTier] = useState('free');
+    const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
     const [primaryColor, setPrimaryColor] = useState(DEFAULT_THEME.primary);
     const [secondaryColor, setSecondaryColor] = useState(DEFAULT_THEME.secondary);
@@ -414,6 +421,8 @@ const ManageEvent = () => {
                 setFontMain(hydrated.theme.fontMain);
                 setFontNote(hydrated.theme.fontNote);
 
+                setBillingTier(data.billing?.tier || 'free');
+
                 initialSnapshotRef.current = normalizeDraft(hydrated);
                 setSnapshotReady(true);
             } catch (error) {
@@ -426,6 +435,30 @@ const ManageEvent = () => {
 
         fetchEvent();
     }, [eventId, navigate]);
+
+    // Real-time billing listener — detects tier change after payment
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, 'events', eventId), (snap) => {
+            if (snap.exists()) {
+                setBillingTier(snap.data().billing?.tier || 'free');
+            }
+        });
+        return () => unsub();
+    }, [eventId]);
+
+    const handlePlusCheckout = useCallback(async () => {
+        if (isCheckoutLoading) return;
+        setIsCheckoutLoading(true);
+        try {
+            const { openCheckout } = await import('../../utils/checkout');
+            await openCheckout(eventId);
+            setTimeout(() => setIsCheckoutLoading(false), 3000);
+        } catch (error) {
+            console.error('Checkout failed:', error);
+            alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            setIsCheckoutLoading(false);
+        }
+    }, [eventId, isCheckoutLoading]);
 
     useEffect(() => {
         const beforeUnload = (event) => {
@@ -762,6 +795,94 @@ const ManageEvent = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Plus Pass 업그레이드 배너 */}
+            {billingTier !== 'plus' && !loading && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(168,85,247,0.05) 100%)',
+                    border: '1px solid rgba(139,92,246,0.2)',
+                    borderRadius: '14px',
+                    padding: '1.25rem 1.5rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                }}>
+                    <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                    }}>
+                        <MessageCircleHeart size={22} style={{ color: '#fff' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
+                            color: 'var(--text-primary)',
+                            marginBottom: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                        }}>
+                            <Zap size={14} style={{ color: '#8b5cf6' }} />
+                            이 공연에 Plus Pass 적용하기
+                        </div>
+                        <div style={{
+                            fontSize: '0.82rem',
+                            color: 'var(--text-tertiary)',
+                            lineHeight: 1.5,
+                        }}>
+                            관객들이 공연에 대한 응원과 감상을 자유롭게 남기는 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>을 열고,
+                            광고 없는 쾌적한 관객 화면을 제공하세요.
+                        </div>
+                    </div>
+                    <button
+                        onClick={handlePlusCheckout}
+                        disabled={isCheckoutLoading}
+                        style={{
+                            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '0.6rem 1.2rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            cursor: isCheckoutLoading ? 'wait' : 'pointer',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 2px 10px rgba(139,92,246,0.3)',
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {isCheckoutLoading ? '준비 중...' : '₩9,900 결제하기'}
+                    </button>
+                </div>
+            )}
+
+            {billingTier === 'plus' && !loading && (
+                <div style={{
+                    background: 'rgba(16,185,129,0.08)',
+                    border: '1px solid rgba(16,185,129,0.2)',
+                    borderRadius: '14px',
+                    padding: '0.75rem 1.25rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    fontSize: '0.85rem',
+                    color: '#10b981',
+                    fontWeight: 600,
+                }}>
+                    <Check size={16} /> Plus Pass 이용 중 — 응원 게시판 활성화 · 광고 제거 적용됨
+                </div>
+            )}
 
             <div className={styles.editorLayout}>
                 {/* 왼쪽 에디터 */}

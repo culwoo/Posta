@@ -23,9 +23,9 @@ const MoreDashboard = () => {
         },
         {
             icon: CreditCard,
-            title: '프리미엄',
-            desc: '유료 플랜과 혜택을 확인합니다.',
-            action: <Link to="/dashboard/premium" style={{ textDecoration: 'none' }}><GlassButton variant="secondary" size="sm">이동</GlassButton></Link>,
+            title: '요금제',
+            desc: 'Plus Pass 혜택과 이벤트별 결제 현황을 확인합니다.',
+            action: <Link to="/dashboard/pricing" style={{ textDecoration: 'none' }}><GlassButton variant="secondary" size="sm">이동</GlassButton></Link>,
         },
         {
             icon: HelpCircle,
