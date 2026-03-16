@@ -47,45 +47,54 @@
     color: var(--modal-muted);
 }
 
-.headerActions {
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--modal-muted);
+    cursor: pointer;
+    padding: 4px;
     display: flex;
-    gap: 0.4rem;
     align-items: center;
+    justify-content: center;
+    border-radius: 50%;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.closeBtn:active {
+    background: var(--modal-panel);
+}
+
+.postActions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
 }
 
 .editBtn,
-.deleteBtn,
-.closeBtn {
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: 1.5px solid rgba(255, 255, 255, 0.6);
-    border-radius: 10px;
-    width: 34px;
-    height: 34px;
+.deleteBtn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    color: #fff;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--modal-panel-border);
+    background: var(--modal-panel);
+    color: var(--modal-text);
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: var(--font-main);
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
-    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.editBtn:hover {
-    background: #3b82f6;
-    transform: scale(1.08);
+.editBtn:active {
+    background: rgba(59, 130, 246, 0.15);
 }
 
-.deleteBtn:hover {
-    background: #ef4444;
-    transform: scale(1.08);
-}
-
-.closeBtn:hover {
-    background: rgba(15, 23, 42, 0.9);
-    transform: scale(1.08);
+.deleteBtn:active {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
 }
 
 .contentBody {
@@ -202,7 +211,8 @@
     padding: 2px;
 }
 
-.deleteCommentBtn:hover {
+.deleteCommentBtn:hover,
+.deleteCommentBtn:active {
     color: #ef4444;
 }
 
@@ -250,15 +260,10 @@
     transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.submitBtn:hover:not(:disabled) {
+.submitBtn:hover:not(:disabled),
+.submitBtn:active:not(:disabled) {
     background: rgb(185, 60, 35);
     box-shadow: 0 6px 16px rgba(208, 76, 49, 0.4);
-    transform: translateY(-1px);
-}
-
-.submitBtn:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(208, 76, 49, 0.3);
 }
 
 .submitBtn:disabled {

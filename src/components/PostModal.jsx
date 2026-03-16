@@ -122,22 +122,27 @@ const PostModal = ({ post, onClose, isMine, canDelete, onEdit, onDelete }) => {
                         <span className={classes.from}>From. {post.from}</span>
                         <span className={classes.date}>{formattedDate}</span>
                     </div>
-                    <div className={classes.headerActions}>
+                    <button className={classes.closeBtn} onClick={onClose} aria-label="닫기">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {(isMine || canDelete) && (
+                    <div className={classes.postActions}>
                         {isMine && (
-                            <button className={classes.editBtn} onClick={onEdit} aria-label="수정">
-                                <Pencil size={18} />
+                            <button className={classes.editBtn} onClick={onEdit}>
+                                <Pencil size={15} />
+                                수정
                             </button>
                         )}
                         {(isMine || canDelete) && (
-                            <button className={classes.deleteBtn} onClick={onDelete} aria-label="삭제">
-                                <Trash2 size={18} />
+                            <button className={classes.deleteBtn} onClick={onDelete}>
+                                <Trash2 size={15} />
+                                삭제
                             </button>
                         )}
-                        <button className={classes.closeBtn} onClick={onClose} aria-label="닫기">
-                            <X size={22} />
-                        </button>
                     </div>
-                </div>
+                )}
 
                 <div className={classes.contentBody}>
                     <p className={classes.content}>{post.content}</p>
