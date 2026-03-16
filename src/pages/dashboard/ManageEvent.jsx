@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
     db,
@@ -459,6 +459,15 @@ const ManageEvent = () => {
             setIsCheckoutLoading(false);
         }
     }, [eventId, isCheckoutLoading]);
+
+    // 결제 모달이 자동으로 닫힐 때 로딩 상태 해제
+    useEffect(() => {
+        const handleCheckoutSuccess = () => {
+            setIsCheckoutLoading(false);
+        };
+        window.addEventListener('posta:checkout-success', handleCheckoutSuccess);
+        return () => window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
+    }, []);
 
     useEffect(() => {
         const beforeUnload = (event) => {

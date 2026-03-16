@@ -99,6 +99,15 @@ const PremiumDashboard = () => {
     return () => unsubs.forEach(u => u());
   }, [events.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 결제 모달이 자동으로 닫힐 때 로딩 상태 해제
+  React.useEffect(() => {
+    const handleCheckoutSuccess = () => {
+      setCheckoutLoadingId(null);
+    };
+    window.addEventListener('posta:checkout-success', handleCheckoutSuccess);
+    return () => window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
+  }, []);
+
   const handleCheckout = React.useCallback(async (eventId) => {
     if (checkoutLoadingId) return;
     setCheckoutLoadingId(eventId);
