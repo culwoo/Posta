@@ -89,9 +89,6 @@ const Board = () => {
                         key={post.id}
                         post={post}
                         isMine={user && post.fromUid === user.uid}
-                        canDelete={isAdmin && post.isPublic}
-                        onDelete={() => handleDelete(post.id)}
-                        onEdit={() => handleEdit(post)}
                         onClick={() => handleViewPost(post)}
                     />
                 ))}
@@ -117,6 +114,18 @@ const Board = () => {
                 <PostModal
                     post={viewingPost}
                     onClose={() => setViewingPost(null)}
+                    isMine={user && viewingPost.fromUid === user.uid}
+                    canDelete={isAdmin && viewingPost.isPublic}
+                    onEdit={() => {
+                        const post = viewingPost;
+                        setViewingPost(null);
+                        handleEdit(post);
+                    }}
+                    onDelete={() => {
+                        const postId = viewingPost.id;
+                        setViewingPost(null);
+                        handleDelete(postId);
+                    }}
                 />
             )}
         </div>

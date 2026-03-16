@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Pencil, X } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import classes from './StickyNote.module.css';
 
 const toRgb = (hex) => {
@@ -27,7 +27,7 @@ const getStableRotation = (seed) => {
     return Math.max(-3, Math.min(3, normalized));
 };
 
-const StickyNote = ({ post, isMine, canDelete, onDelete, onEdit, onClick }) => {
+const StickyNote = ({ post, isMine, onClick }) => {
     const rotation = useMemo(() => getStableRotation(post.id || post.createdAt || post.content), [post.content, post.createdAt, post.id]);
     const textColor = useMemo(() => getTextColor(post.color || '#FFF9B0'), [post.color]);
     const mutedColor = useMemo(() => (textColor === '#f8fafc' ? 'rgba(248, 250, 252, 0.72)' : 'rgba(31, 41, 55, 0.72)'), [textColor]);
@@ -48,33 +48,6 @@ const StickyNote = ({ post, isMine, canDelete, onDelete, onEdit, onClick }) => {
                 color: textColor
             }}
         >
-            {(isMine || canDelete) && (
-                <div className={classes.actions}>
-                    {isMine && (
-                        <button
-                            className={classes.actionBtn}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                onEdit();
-                            }}
-                            title="수정"
-                        >
-                            <Pencil size={14} />
-                        </button>
-                    )}
-                    <button
-                        className={classes.actionBtn}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onDelete();
-                        }}
-                        title="삭제"
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
-            )}
-
             <div className={classes.header}>
                 <span className={classes.from} style={{ color: textColor }}>From. {post.from}</span>
                 {post.isPublic ? (

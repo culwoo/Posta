@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { addDoc, collection, db, deleteDoc, doc, increment, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from '../api/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
-import { Trash2, X } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import classes from './PostModal.module.css';
 
 const toRgb = (hex) => {
@@ -28,7 +28,7 @@ const getContrastPalette = (hex) => {
     };
 };
 
-const PostModal = ({ post, onClose }) => {
+const PostModal = ({ post, onClose, isMine, canDelete, onEdit, onDelete }) => {
     const { user } = useAuth();
     const { eventId } = useEvent();
     const [comments, setComments] = useState([]);
@@ -122,9 +122,21 @@ const PostModal = ({ post, onClose }) => {
                         <span className={classes.from}>From. {post.from}</span>
                         <span className={classes.date}>{formattedDate}</span>
                     </div>
-                    <button className={classes.closeBtn} onClick={onClose} aria-label="닫기">
-                        <X size={22} />
-                    </button>
+                    <div className={classes.headerActions}>
+                        {isMine && (
+                            <button className={classes.editBtn} onClick={onEdit} aria-label="수정">
+                                <Pencil size={18} />
+                            </button>
+                        )}
+                        {(isMine || canDelete) && (
+                            <button className={classes.deleteBtn} onClick={onDelete} aria-label="삭제">
+                                <Trash2 size={18} />
+                            </button>
+                        )}
+                        <button className={classes.closeBtn} onClick={onClose} aria-label="닫기">
+                            <X size={22} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className={classes.contentBody}>
