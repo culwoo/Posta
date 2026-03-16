@@ -101,11 +101,15 @@ const PremiumDashboard = () => {
 
   // 결제 모달이 자동으로 닫힐 때 로딩 상태 해제
   React.useEffect(() => {
-    const handleCheckoutSuccess = () => {
-      setCheckoutLoadingId(null);
-    };
+    const handleCheckoutSuccess = () => setCheckoutLoadingId(null);
+    const handleCheckoutCancel = () => setCheckoutLoadingId(null);
+
     window.addEventListener('posta:checkout-success', handleCheckoutSuccess);
-    return () => window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
+    window.addEventListener('posta:checkout-cancel', handleCheckoutCancel);
+    return () => {
+        window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
+        window.removeEventListener('posta:checkout-cancel', handleCheckoutCancel);
+    };
   }, []);
 
   const handleCheckout = React.useCallback(async (eventId) => {
