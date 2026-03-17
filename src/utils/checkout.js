@@ -1,10 +1,23 @@
 import { db, doc, onSnapshot, functions, httpsCallable } from '../api/firebase';
 
 /**
- * Lemon Squeezy checkout을 커스텀 모달 오버레이로 실행.
+ * 모바일 기기 여부 판별.
+ * Lemon Squeezy checkout이 모바일 iframe 안에서 404를 반환하므로,
+ * 모바일에서는 새 탭으로 열어야 한다.
+ */
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 0 && window.innerWidth <= 768);
+}
+
+/**
+ * Lemon Squeezy checkout 실행.
  *
- * 결제 진행 중 Firestore 이벤트를 실시간으로 감시하여,
- * 웹훅이 결제를 처리하고 티어가 'plus'로 변경되면 자동으로 모달을 닫고 성공 처리합니다.
+ * - 데스크톱: 커스텀 모달 오버레이(iframe)
+ * - 모바일: 새 탭으로 열기 (Lemon Squeezy가 모바일 iframe을 지원하지 않음)
+ *
+ * 두 경우 모두 Firestore 이벤트를 실시간 감시하여,
+ * 웹훅이 결제를 처리하고 티어가 'plus'로 변경되면 성공 처리합니다.
  *
  * @param {string} eventId
  * @returns {Promise<void>}
@@ -18,7 +31,44 @@ export async function openCheckout(eventId) {
     throw new Error('유효한 결제 링크를 받지 못했습니다.');
   }
 
-  showCheckoutModal(checkoutUrl, eventId);
+  if (isMobile()) {
+    openCheckoutNewTab(checkoutUrl, eventId);
+  } else {
+    showCheckoutModal(checkoutUrl, eventId);
+  }
+}
+
+/**
+ * 모바일: 새 탭으로 checkout 열기 + Firestore 실시간 감시.
+ * 결제 완료 시 Firestore 리스너가 tier 변경을 감지하여 success 이벤트를 발생시킨다.
+ */
+function openCheckoutNewTab(url, eventId) {
+  window.open(url, '_blank');
+
+  let resolved = false;
+
+  // Firestore 실시간 감시: 결제 완료 시 success 이벤트 발생
+  const docRef = doc(db, 'events', eventId);
+  const unsub = onSnapshot(docRef, (snap) => {
+    if (resolved) return;
+    if (snap.exists()) {
+      const tier = snap.data().billing?.tier || 'free';
+      if (tier === 'plus') {
+        resolved = true;
+        console.log('[Posta] Firestore billing tier updated to plus (mobile checkout).');
+        unsub();
+        window.dispatchEvent(new CustomEvent('posta:checkout-success', { detail: { eventId } }));
+      }
+    }
+  });
+
+  // 5분 후 리스너 자동 해제 (안전장치)
+  setTimeout(() => {
+    if (resolved) return;
+    resolved = true;
+    unsub();
+    window.dispatchEvent(new CustomEvent('posta:checkout-cancel', { detail: { eventId } }));
+  }, 5 * 60 * 1000);
 }
 
 function showCheckoutModal(url, eventId) {
