@@ -1,6 +1,1 @@
-# Google AdSense ads.txt
-# ─────────────────────────────────────────
-# AdSense 승인 후 아래 XXXXXXXXXXXXXXXX를 실제 Publisher ID로 교체하세요.
-# 형식: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
-#
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+google.com, pub-2904891603549154, DIRECT, f08c47fec0942fa0

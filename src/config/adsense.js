@@ -15,7 +15,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 글로벌 설정
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export const ADSENSE_PUBLISHER_ID = 'ca-pub-XXXXXXXXXXXXXXXX'; // TODO: 실제 Publisher ID로 교체
+export const ADSENSE_PUBLISHER_ID = 'ca-pub-2904891603549154';
 export const ADSENSE_ENABLED = false; // AdSense 승인 전까지 false
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
