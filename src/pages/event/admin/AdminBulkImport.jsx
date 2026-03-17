@@ -1,31 +1,67 @@
 import React, { useState, useRef } from 'react';
-import { read, utils } from 'xlsx';
+import { read, utils, write } from 'xlsx';
 import { db, auth, collection, doc, writeBatch } from '../../../api/firebase';
 import classes from '../Admin.module.css';
 
-const COLUMN_DEFS = [
-    { key: 'name', label: '이름 *', patterns: ['이름', 'name', '성명', '입금자', '입금명', '예약자'] },
-    { key: 'phone', label: '연락처', patterns: ['연락처', 'phone', '전화', '전화번호', '핸드폰', '휴대폰', '휴대전화'] },
-    { key: 'email', label: '이메일', patterns: ['이메일', 'email', '메일', 'e-mail'] },
-    { key: 'ticketCount', label: '수량', patterns: ['수량', '인원', 'count', 'ticket', '장', '매수', '티켓'] },
-];
+const TEMPLATE_HEADERS = ['이름*', '연락처*', '이메일(선택)', '수량*'];
 
-function autoDetect(headers) {
-    const map = {};
-    for (const def of COLUMN_DEFS) {
-        const found = headers.find(h =>
-            def.patterns.some(p => h.toLowerCase().includes(p.toLowerCase()))
-        );
-        if (found) map[def.key] = found;
+const isValidHeaders = (hdrs) =>
+    hdrs.length >= TEMPLATE_HEADERS.length &&
+    TEMPLATE_HEADERS.every((h, i) => h === hdrs[i]);
+
+const downloadTemplate = () => {
+    const wb = utils.book_new();
+    const ws = utils.aoa_to_sheet([
+        ['아래 헤더를 수정하지 마세요! 이 행은 자동으로 무시됩니다.'],
+        TEMPLATE_HEADERS,
+    ]);
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+    ws['!cols'] = [{ wch: 16 }, { wch: 16, z: '@' }, { wch: 24 }, { wch: 10 }, { wch: 4 }, { wch: 4 }];
+    ws['!rows'] = [{ hpt: 28 }];
+    // 연락처 열(B) 데이터 영역을 텍스트 서식(@)으로 설정하여 앞자리 0 보존
+    for (let r = 2; r <= 501; r++) {
+        const ref = utils.encode_cell({ r, c: 1 });
+        ws[ref] = { t: 's', v: '', z: '@' };
     }
-    return map;
-}
+    utils.book_append_sheet(wb, ws, '예약 양식');
+    const buf = write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '예약_일괄등록_양식.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+const parseSheet = (sheet) => {
+    // Try row 1 as headers (no warning row)
+    let data = utils.sheet_to_json(sheet, { defval: '' });
+    if (data.length > 0 && isValidHeaders(Object.keys(data[0]))) return data;
+
+    // Try row 2 as headers (warning row exists)
+    data = utils.sheet_to_json(sheet, { defval: '', range: 1 });
+    if (data.length > 0 && isValidHeaders(Object.keys(data[0]))) return data;
+
+    return null;
+};
+
+const cleanName = (val) => String(val || '').replace(/\s+/g, ' ').trim();
+const cleanPhone = (val) => {
+    const digits = String(val || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.startsWith('0') ? digits : '0' + digits;
+};
+const cleanTicketCount = (val) => {
+    const digits = String(val || '').replace(/[^\d]/g, '');
+    return parseInt(digits, 10) || 1;
+};
 
 const AdminBulkImport = ({ eventId }) => {
-    const [step, setStep] = useState('idle'); // idle | mapping | importing | done
+    const [step, setStep] = useState('idle'); // idle | preview | importing | done
     const [parsedData, setParsedData] = useState([]);
-    const [headers, setHeaders] = useState([]);
-    const [columnMap, setColumnMap] = useState({});
     const [progress, setProgress] = useState({ imported: 0, skipped: 0, total: 0 });
     const [error, setError] = useState('');
     const fileRef = useRef(null);
@@ -41,48 +77,28 @@ const AdminBulkImport = ({ eventId }) => {
                 const data = new Uint8Array(event.target.result);
                 const workbook = read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = utils.sheet_to_json(firstSheet, { defval: '' });
+                const jsonData = parseSheet(firstSheet);
+
+                if (!jsonData) {
+                    setError('양식이 맞지 않습니다. 양식을 다운로드하여 헤더를 변경하지 말고 사용해주세요.');
+                    return;
+                }
 
                 if (jsonData.length === 0) {
                     setError('파일에 데이터가 없습니다.');
                     return;
                 }
 
-                const hdrs = Object.keys(jsonData[0]);
                 setParsedData(jsonData);
-                setHeaders(hdrs);
-                setColumnMap(autoDetect(hdrs));
-                setStep('mapping');
+                setStep('preview');
             } catch {
-                setError('파일을 읽을 수 없습니다. 엑셀(.xlsx) 또는 CSV 파일을 확인해주세요.');
+                setError('파일을 읽을 수 없습니다. 양식에 맞는 엑셀(.xlsx) 파일인지 확인해주세요.');
             }
         };
         reader.readAsArrayBuffer(file);
     };
 
-    const handleMapChange = (key, value) => {
-        setColumnMap(prev => {
-            const next = { ...prev };
-            if (value) next[key] = value;
-            else delete next[key];
-            return next;
-        });
-    };
-
-    const getPreviewRows = () => parsedData.slice(0, 5);
-
-    const getMappedValue = (row, key) => {
-        const col = columnMap[key];
-        if (!col) return key === 'ticketCount' ? '1' : '-';
-        const val = row[col];
-        return val !== undefined && val !== '' ? String(val) : (key === 'ticketCount' ? '1' : '-');
-    };
-
     const handleImport = async () => {
-        if (!columnMap.name) {
-            setError('이름 컬럼은 필수입니다.');
-            return;
-        }
         if (!eventId || !auth.currentUser) return;
 
         setStep('importing');
@@ -98,12 +114,12 @@ const AdminBulkImport = ({ eventId }) => {
                 const chunk = parsedData.slice(i, i + BATCH_SIZE);
 
                 for (const row of chunk) {
-                    const name = String(row[columnMap.name] || '').trim();
+                    const name = cleanName(row['이름*']);
                     if (!name) { skipped++; continue; }
 
-                    const phone = columnMap.phone ? String(row[columnMap.phone] || '').replace(/[-.\s]/g, '').trim() : '';
-                    const email = columnMap.email ? String(row[columnMap.email] || '').trim() : '';
-                    const ticketCount = columnMap.ticketCount ? (Number(row[columnMap.ticketCount]) || 1) : 1;
+                    const phone = cleanPhone(row['연락처*']);
+                    const email = String(row['이메일(선택)'] || '').trim();
+                    const ticketCount = cleanTicketCount(row['수량*']);
 
                     const docRef = doc(collection(db, 'events', eventId, 'reservations'));
                     batch.set(docRef, {
@@ -129,15 +145,13 @@ const AdminBulkImport = ({ eventId }) => {
         } catch (err) {
             console.error('Bulk import failed:', err);
             setError(`가져오기 중 오류 발생 (${imported}건 완료, ${parsedData.length - imported - skipped}건 미처리)`);
-            setStep('mapping');
+            setStep('idle');
         }
     };
 
     const handleReset = () => {
         setStep('idle');
         setParsedData([]);
-        setHeaders([]);
-        setColumnMap({});
         setProgress({ imported: 0, skipped: 0, total: 0 });
         setError('');
         if (fileRef.current) fileRef.current.value = '';
@@ -151,61 +165,20 @@ const AdminBulkImport = ({ eventId }) => {
                 </div>
             )}
 
-            {/* Phase 1: File Selection */}
             {step === 'idle' && (
-                <div>
-                    <input
-                        ref={fileRef}
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                    />
-                    <button
-                        onClick={() => fileRef.current?.click()}
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            backgroundColor: 'rgba(255,255,255,0.08)',
-                            color: 'var(--text-primary)',
-                            border: '1px dashed rgba(255,255,255,0.2)',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            width: '100%',
-                        }}
-                    >
-                        파일 선택 (.xlsx, .csv)
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display: 'none' }} />
+                    <button onClick={downloadTemplate} style={templateBtnStyle}>
+                        양식 다운로드
+                    </button>
+                    <button onClick={() => fileRef.current?.click()} style={uploadBtnStyle}>
+                        파일 업로드
                     </button>
                 </div>
             )}
 
-            {/* Phase 2: Column Mapping */}
-            {step === 'mapping' && (
+            {step === 'preview' && (
                 <div>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>
-                            컬럼 매핑 (파일의 컬럼을 예약 필드에 연결하세요)
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '5rem 1fr', gap: '0.4rem 0.75rem', alignItems: 'center' }}>
-                            {COLUMN_DEFS.map(def => (
-                                <React.Fragment key={def.key}>
-                                    <label style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{def.label}</label>
-                                    <select
-                                        value={columnMap[def.key] || ''}
-                                        onChange={(e) => handleMapChange(def.key, e.target.value)}
-                                        style={selectStyle}
-                                    >
-                                        <option value="">사용 안함</option>
-                                        {headers.map(h => (
-                                            <option key={h} value={h}>{h}</option>
-                                        ))}
-                                    </select>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Preview Table */}
                     <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
                         미리보기 (상위 5건)
                     </div>
@@ -213,40 +186,23 @@ const AdminBulkImport = ({ eventId }) => {
                         <table className={classes.table} style={{ fontSize: '0.8rem' }}>
                             <thead>
                                 <tr>
-                                    <th>이름</th>
-                                    <th>연락처</th>
-                                    <th>이메일</th>
-                                    <th>수량</th>
+                                    {TEMPLATE_HEADERS.map(h => <th key={h}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
-                                {getPreviewRows().map((row, i) => (
+                                {parsedData.slice(0, 5).map((row, i) => (
                                     <tr key={i}>
-                                        <td>{getMappedValue(row, 'name')}</td>
-                                        <td>{getMappedValue(row, 'phone')}</td>
-                                        <td>{getMappedValue(row, 'email')}</td>
-                                        <td>{getMappedValue(row, 'ticketCount')}</td>
+                                        <td>{cleanName(row['이름*']) || '-'}</td>
+                                        <td>{cleanPhone(row['연락처*']) || '-'}</td>
+                                        <td>{String(row['이메일(선택)'] || '').trim() || '-'}</td>
+                                        <td>{cleanTicketCount(row['수량*'])}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <button
-                            onClick={handleImport}
-                            disabled={!columnMap.name}
-                            style={{
-                                padding: '0.5rem 1.2rem',
-                                backgroundColor: columnMap.name ? '#333' : '#555',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: columnMap.name ? 'pointer' : 'not-allowed',
-                                fontSize: '0.9rem',
-                                fontWeight: 'bold',
-                            }}
-                        >
+                        <button onClick={handleImport} style={importBtnStyle}>
                             총 {parsedData.length}건 가져오기
                         </button>
                         <button onClick={handleReset} style={ghostBtnStyle}>
@@ -256,7 +212,6 @@ const AdminBulkImport = ({ eventId }) => {
                 </div>
             )}
 
-            {/* Phase 3: Importing */}
             {step === 'importing' && (
                 <div>
                     <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
@@ -274,7 +229,6 @@ const AdminBulkImport = ({ eventId }) => {
                 </div>
             )}
 
-            {/* Phase 4: Done */}
             {step === 'done' && (
                 <div>
                     <div style={{ fontSize: '0.95rem', color: '#00d4aa', fontWeight: 'bold', marginBottom: '0.5rem' }}>
@@ -294,14 +248,37 @@ const AdminBulkImport = ({ eventId }) => {
     );
 };
 
-const selectStyle = {
-    padding: '0.4rem',
-    borderRadius: '6px',
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.04)',
+const templateBtnStyle = {
+    padding: '0.6rem 1.2rem',
+    backgroundColor: 'transparent',
     color: 'var(--text-primary)',
-    fontSize: '0.85rem',
-    minWidth: 0,
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    flex: 1,
+};
+
+const uploadBtnStyle = {
+    padding: '0.6rem 1.2rem',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: 'var(--text-primary)',
+    border: '1px dashed rgba(255,255,255,0.2)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    flex: 1,
+};
+
+const importBtnStyle = {
+    padding: '0.5rem 1.2rem',
+    backgroundColor: '#333',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
 };
 
 const ghostBtnStyle = {
