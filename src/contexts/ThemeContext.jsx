@@ -7,8 +7,7 @@ export function ThemeProvider({ children }) {
     // 1. Check localStorage
     const saved = localStorage.getItem('posta-theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    // 2. Detect OS preference
-    if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+    // 2. Default to dark mode
     return 'dark';
   });
 
