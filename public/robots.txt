@@ -1,0 +1,11 @@
+User-agent: Mediapartners-Google
+Disallow: /dashboard/
+Disallow: /e/
+Disallow: /api/
+Allow: /$
+
+User-agent: *
+Disallow: /dashboard/
+Disallow: /e/*/admin
+Disallow: /api/
+Allow: /

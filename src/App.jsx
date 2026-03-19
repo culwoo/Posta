@@ -7,6 +7,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import GlassBackground from './components/GlassBackground';
 import LandingPage from './pages/LandingPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CookieConsent from './components/CookieConsent';
 
 // Event Pages
 import Home from './pages/event/Home';
@@ -50,6 +53,8 @@ function App() {
           <Routes>
             {/* Landing Page */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<EventList />} />
               <Route path="create" element={<CreateEvent />} />
@@ -94,6 +99,7 @@ function App() {
               />
             </Route>
           </Routes>
+          <CookieConsent />
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

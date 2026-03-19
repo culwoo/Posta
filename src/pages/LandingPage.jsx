@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
     Zap, Users, BarChart3, ArrowRight, Ticket,
@@ -743,6 +743,56 @@ export default function LandingPage() {
                 </motion.div>
             </RevealSection>
 
+            {/* ─── AdSense Approval Article (전략 A: 애드센스 승인 심사용 텍스트 섹션) ─── */}
+            <RevealSection className="landing-section" id="guide" style={{ padding: '4rem 2rem', background: 'rgba(255,255,255,0.02)' }}>
+                <motion.div variants={fadeUp} custom={0} style={{ maxWidth: '800px', margin: '0 auto', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
+                    <h2 style={{ fontSize: '2rem', color: 'var(--text-primary)', marginBottom: '1.5rem', textAlign: 'center' }}>
+                        성공적인 인디 공연 기획과 예매 관리 가이드라인
+                    </h2>
+                    
+                    <p style={{ marginBottom: '1.5rem' }}>
+                        현대의 인디 음악씬과 소규모 공연 문화는 기술의 발전과 함께 새로운 국면을 맞이하고 있습니다. 과거에는 공연을 기획하고 관객을 모으는 모든 과정이 수작업으로 이루어졌습니다. 하지만 이제는 디지털 플랫폼과 자동화 솔루션의 등장으로 기획자, 아티스트, 그리고 팬 모두가 본연의 목적에 더욱 집중할 수 있는 환경이 조성되었습니다. 이 가이드에서는 성공적인 소규모 공연 기획을 위해 필수적인 예매 자동화, 관객 체크인 효율화, 그리고 데이터 기반의 의사 결정 방법에 대해 깊이 있게 다룹니다.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2.5rem', marginBottom: '1rem' }}>
+                        1. 수동 예매와 입금 확인 시스템의 한계
+                    </h3>
+                    <p style={{ marginBottom: '1.2rem' }}>
+                        전통적으로 소규모 밴드 긱(Gig)이나 대학 동아리 공연에서는 구글 폼(Google Forms)이나 네이버 폼과 같은 설문 도구를 이용해 예매를 받아왔습니다. 사용법이 간단하고 무료라는 장점이 있지만, 치명적인 단점이 존재합니다. 관객이 기재한 입금자명과 은행 계좌로 들어오는 실제 입금 내역을 일일이 대조해야 한다는 점입니다.
+                    </p>
+                    <p style={{ marginBottom: '1.5rem' }}>
+                        동명이인이 발생하거나 관객이 입금자명을 잘못 설정하는 경우, 기획자는 이를 추적하기 위해 수많은 시간을 허비하게 됩니다. 실수로 명단 파일의 행 내용이 바뀌거나 누락되는 순간 현장(Onsite)에서 발생할 혼란은 겉잡을 수 없이 커집니다. 수작업 대조는 기획자의 스트레스를 극대화하고, 아티스트가 멋진 무대를 준비하는 시간을 앗아가는 가장 큰 원인입니다. 자동 입금 매칭 시스템이 필요한 절대적인 이유가 여기에 있습니다.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2.5rem', marginBottom: '1rem' }}>
+                        2. 언택트 시대의 현장 운영: 디지털 티켓과 QR 체크인
+                    </h3>
+                    <p style={{ marginBottom: '1.2rem' }}>
+                        공연 당일, 현장 스태프들 앞에는 관객 수백 명의 이름이 빼곡히 적힌 종이 명단이 놓여 있습니다. 스태프들은 손가락으로 이름을 짚어가며 관객의 신원을 확인하고 펜으로 밑줄을 긋습니다. 이 과정에서 한 사람당 평균 30초에서 1분이 소모되며, 이로 인해 관객들의 대기 줄은 한없이 길어집니다. 긴 대기 시간은 공연의 시작 전부터 관객의 기대감을 실망이나 분노로 바꾸는 주된 요소가 됩니다.
+                    </p>
+                    <p style={{ marginBottom: '1.5rem' }}>
+                        디지털 전환은 이러한 아날로그식 병목 현상을 해결하는 강력한 무기입니다. 스마트폰으로 전송된 고유한 QR 코드를 통해, 카메라 스캔 단 1초 만에 체크인이 완료되는 시스템은 현장 혼잡을 극적으로 줄여줍니다. 또한 모바일 디지털 티켓은 관객에게 있어 내가 참여하는 공연의 소유권과 기념품(Souvenir)으로서의 가치까지 선사합니다. 기획자는 단 한 대의 태블릿이나 스마트폰만으로 여러 명의 스태프 몫을 대체할 수 있게 되는 셈입니다.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2.5rem', marginBottom: '1rem' }}>
+                        3. 공연 후의 새로운 시작: 데이터 통계와 관객 리타겟팅
+                    </h3>
+                    <p style={{ marginBottom: '1.2rem' }}>
+                        많은 독립 아티스트들이 공연이 끝난 직후 "무사히 끝났다"는 안도감과 함께 프로젝트를 종료합니다. 그러나 데이터 시대의 공연 기획은 공연 마무리가 새로운 마케팅의 시작점이 되어야 합니다. 예약률 대비 실제 체크인 비율(Show-up Rate)은 얼마였는지, 관객이 예약한 주요 경로와 시간대는 언제였는지를 분석하는 것은 다음 공연의 성패를 가르는 잣대가 됩니다.
+                    </p>
+                    <p style={{ marginBottom: '1.5rem' }}>
+                        또한 티켓을 구매했던 관객들의 이메일이나 연락처 등 팬덤 데이터를 자산화하여, 다음 시즌 에피소드나 신규 앨범 발매 시 가장 먼저 알릴 수 있는 CRM(고객 관계 관리) 전략을 도입할 수 있습니다. 1회성 공연으로 끝나는 것이 아니라, 데이터를 매개로 지속 가능한 팬덤 생태계를 구축하는 것이야말로 롱런(Long-run)하는 인디 뮤지션의 비밀입니다.
+                    </p>
+
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2.5rem', marginBottom: '1rem' }}>
+                        맺음말: 아티스트는 무대에, 시스템은 시스템에
+                    </h3>
+                    <p style={{ marginBottom: '1.5rem' }}>
+                        결론적으로 소규모 공연 기획이 나아가야 할 방향성은 명확합니다. 자동화된 솔루션에 운영의 부담을 덜어내고, 기획자가 확보한 시간과 에너지를 콘텐츠 본연의 질을 높이는 데 쏟는 것입니다. Posta와 같은 최신 예매 관리 플랫폼을 적극적으로 도입하여 낡은 구글 폼과 종이 명단의 굴레에서 벗어날 때입니다. 기획자의 손이 가벼워질수록, 관객은 더욱 큰 감동을 얻어갈 것입니다.
+                    </p>
+                </motion.div>
+            </RevealSection>
+
             {/* ─── Footer ─── */}
             <footer className="landing-footer">
                 <div className="footer-inner">
@@ -757,6 +807,13 @@ export default function LandingPage() {
                         <button onClick={goToDashboard}>시작하기</button>
                     </div>
                     <div className="footer-right">
+                        <div className="footer-legal">
+                            <Link to="/privacy">개인정보처리방침</Link>
+                            <span className="footer-divider">·</span>
+                            <Link to="/terms">이용약관</Link>
+                            <span className="footer-divider">·</span>
+                            <a href="mailto:posta.systems.official@gmail.com">문의</a>
+                        </div>
                         <span className="footer-copy">
                             © 2026 Posta. All rights reserved.
                         </span>

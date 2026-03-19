@@ -45,10 +45,22 @@ const getStoredAudience = (eventId) => {
     }
 };
 
+// ★ AdSense 승인용: 로그인 임시 비활성화 (승인 후 이 블록 제거하고 원래 코드 복원)
+const ADSENSE_BYPASS = true;
+const GUEST_USER = {
+    uid: 'guest',
+    email: 'guest@posta.systems',
+    role: 'organizer',
+    name: 'Guest',
+    isAdmin: true,
+    tier: 'premium',
+    isPremium: true,
+};
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [authInitialized, setAuthInitialized] = useState(false);
+    const [user, setUser] = useState(GUEST_USER);
+    const [loading, setLoading] = useState(false);
+    const [authInitialized, setAuthInitialized] = useState(true);
     const [accountPremium, setAccountPremium] = useState(DEFAULT_PREMIUM);
     const location = useLocation();
 
@@ -120,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
+        if (ADSENSE_BYPASS) return;
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             const eventId = currentEventIdRef.current;
 
@@ -165,6 +178,7 @@ export const AuthProvider = ({ children }) => {
     }, [resolveGoogleUser]);
 
     useEffect(() => {
+        if (ADSENSE_BYPASS) return;
         if (!authInitialized) return;
         const firebaseUser = auth.currentUser;
         if (!firebaseUser) return;

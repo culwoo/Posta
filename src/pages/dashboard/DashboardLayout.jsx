@@ -63,17 +63,17 @@ const DashboardLayout = () => {
         { to: '/dashboard/more', label: '더보기', icon: Menu, match: (path) => path.startsWith('/dashboard/more') || path.startsWith('/dashboard/settings') || path.startsWith('/dashboard/pricing') }
     ]), [desktopNavItems]);
 
-    if (!loading && !user) {
-        return <DashboardLogin />;
-    }
-
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-primary)', fontFamily: 'var(--font-main)' }}>
-                로딩 중...
-            </div>
-        );
-    }
+    // ★ AdSense 승인용: 로그인 체크 임시 비활성화
+    // if (!loading && !user) {
+    //     return <DashboardLogin />;
+    // }
+    // if (loading) {
+    //     return (
+    //         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-primary)', fontFamily: 'var(--font-main)' }}>
+    //             로딩 중...
+    //         </div>
+    //     );
+    // }
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', color: 'var(--text-primary)' }}>

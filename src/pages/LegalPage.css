@@ -1,0 +1,111 @@
+/* ════════════════════════════════════════════
+   Legal Pages (Privacy Policy, Terms of Service)
+   ════════════════════════════════════════════ */
+
+.legal-page {
+    min-height: 100vh;
+    padding: 60px 24px 80px;
+}
+
+.legal-container {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.legal-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    background: var(--glass-1-bg);
+    border: 1px solid var(--glass-1-border);
+    transition: all 0.2s;
+    margin-bottom: 40px;
+}
+
+.legal-back:hover {
+    color: var(--text-primary);
+    background: var(--glass-bg-hover);
+}
+
+.legal-title {
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.legal-updated {
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
+    margin: 0 0 48px 0;
+}
+
+.legal-section {
+    margin-bottom: 36px;
+}
+
+.legal-section h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--glass-1-border);
+}
+
+.legal-section p {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 12px 0;
+}
+
+.legal-section ul {
+    margin: 0 0 12px 0;
+    padding-left: 20px;
+}
+
+.legal-section li {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 6px;
+}
+
+.legal-section li ul {
+    margin-top: 6px;
+    margin-bottom: 0;
+}
+
+.legal-section strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.legal-section a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.legal-section a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    .legal-page {
+        padding: 40px 16px 60px;
+    }
+
+    .legal-updated {
+        margin-bottom: 32px;
+    }
+}

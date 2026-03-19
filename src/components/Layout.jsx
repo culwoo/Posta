@@ -185,6 +185,13 @@ const Layout = () => {
                         format={AD_SLOTS.EVENT_FOOTER.format}
                         label={AD_SLOTS.EVENT_FOOTER.label}
                     />
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', padding: '12px 0 4px', fontSize: '0.72rem' }}>
+                        <Link to="/privacy" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}>개인정보처리방침</Link>
+                        <span style={{ color: 'var(--text-tertiary)' }}>·</span>
+                        <Link to="/terms" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}>이용약관</Link>
+                        <span style={{ color: 'var(--text-tertiary)' }}>·</span>
+                        <a href="mailto:posta.systems.official@gmail.com" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}>문의</a>
+                    </div>
                 </footer>
             )}
         </div>

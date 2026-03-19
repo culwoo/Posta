@@ -1785,6 +1785,32 @@
 
 .footer-right {
     text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-legal {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer-legal a {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-legal a:hover {
+    color: var(--text-primary);
+}
+
+.footer-divider {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
 }
 
 .footer-copy {
@@ -1806,6 +1832,14 @@
 
     .footer-links {
         flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .footer-right {
+        align-items: center;
+    }
+
+    .footer-legal {
         justify-content: center;
     }
 }

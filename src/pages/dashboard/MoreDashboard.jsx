@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, HelpCircle, Settings, LogOut, Sparkles } from 'lucide-react';
+import { CreditCard, HelpCircle, Settings, LogOut, Sparkles, Shield, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
@@ -48,6 +48,18 @@ const MoreDashboard = () => {
                     보기
                 </GlassButton>
             ),
+        },
+        {
+            icon: Shield,
+            title: '개인정보처리방침',
+            desc: '개인정보 수집 및 이용에 관한 방침을 확인합니다.',
+            action: <Link to="/privacy" style={{ textDecoration: 'none' }}><GlassButton variant="secondary" size="sm">보기</GlassButton></Link>,
+        },
+        {
+            icon: FileText,
+            title: '이용약관',
+            desc: '서비스 이용 조건 및 약관을 확인합니다.',
+            action: <Link to="/terms" style={{ textDecoration: 'none' }}><GlassButton variant="secondary" size="sm">보기</GlassButton></Link>,
         },
         {
             icon: LogOut,
