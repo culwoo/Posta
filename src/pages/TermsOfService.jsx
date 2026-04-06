@@ -109,13 +109,9 @@ export default function TermsOfService() {
                     </ul>
                 </section>
 
-                <section className="legal-section">
-                    <h2>제11조 (광고 게재)</h2>
-                    <p>서비스는 Google AdSense를 통한 광고를 게재할 수 있으며, 이용자는 서비스 이용 시 노출되는 광고에 동의합니다. 유료 플랜 이용자에게는 광고가 표시되지 않을 수 있습니다.</p>
-                </section>
 
                 <section className="legal-section">
-                    <h2>제12조 (분쟁 해결)</h2>
+                    <h2>제11조 (분쟁 해결)</h2>
                     <ul>
                         <li>서비스와 이용자 간 발생한 분쟁은 상호 협의에 의해 해결함을 원칙으로 합니다.</li>
                         <li>협의가 이루어지지 않을 경우, 대한민국 법률을 준거법으로 하며 관할 법원은 민사소송법에 따릅니다.</li>
@@ -123,7 +119,7 @@ export default function TermsOfService() {
                 </section>
 
                 <section className="legal-section">
-                    <h2>제13조 (연락처)</h2>
+                    <h2>제12조 (연락처)</h2>
                     <p>서비스 이용 관련 문의사항은 아래로 연락해 주시기 바랍니다.</p>
                     <ul>
                         <li><strong>서비스명:</strong> Posta</li>

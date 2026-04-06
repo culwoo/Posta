@@ -7,7 +7,7 @@ import { canAccessFeature, getTierLabel, getTierColor } from '../utils/permissio
  *
  * Usage:
  *   const { canAccess, currentTier } = usePermissions();
- *   const { allowed, requiredTier, price } = canAccess('adFree');
+ *   const { allowed, requiredTier, price } = canAccess('board');
  */
 export function usePermissions() {
   const eventContext = useEvent();

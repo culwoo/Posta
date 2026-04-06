@@ -3,7 +3,16 @@ import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  // ★ AdSense 승인용: 로그인 체크 임시 비활성화
+  const { user, loading, authInitialized } = useAuth();
+
+  if (!authInitialized || loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children;
 };
 

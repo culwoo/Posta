@@ -11,7 +11,6 @@ const FEATURE_NAMES = {
   onsite: '현장 관리',
   audience: '관객 대시보드',
   advancedAnalytics: '고급 분석',
-  adFree: '광고 제거',
 };
 
 /**

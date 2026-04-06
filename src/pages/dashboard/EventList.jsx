@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Calendar } from 'lucide-react';
 import { getManagedEvents } from '../../utils/dashboardData';
-import AdBanner from '../../components/AdBanner';
+
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
 
@@ -177,8 +177,6 @@ const EventList = () => {
                 )}
             </div>
 
-            {/* 하단 광고 영역 */}
-            <AdBanner placement="event-list" style={{ marginTop: '2rem' }} />
         </div>
     );
 };

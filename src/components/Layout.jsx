@@ -4,8 +4,7 @@ import classes from './Layout.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
 import { TierBadge } from './features/TierBadge';
-import GoogleAd from './GoogleAd';
-import { AD_SLOTS } from '../config/adsense';
+
 
 const Layout = () => {
     const { user, logout } = useAuth();
@@ -180,11 +179,7 @@ const Layout = () => {
 
             {!isAdminPage && !isCheckinPage && (
                 <footer style={{ padding: '0 1rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-                    <GoogleAd
-                        slotId={AD_SLOTS.EVENT_FOOTER.slotId}
-                        format={AD_SLOTS.EVENT_FOOTER.format}
-                        label={AD_SLOTS.EVENT_FOOTER.label}
-                    />
+
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', padding: '12px 0 4px', fontSize: '0.72rem' }}>
                         <Link to="/privacy" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}>개인정보처리방침</Link>
                         <span style={{ color: 'var(--text-tertiary)' }}>·</span>

@@ -29,7 +29,6 @@ export const TIER_FEATURES = {
 
   // Features requiring PLUS pass
   board:    TIERS.PLUS,
-  adFree:   TIERS.PLUS,
 };
 
 /** Price for each tier (KRW) */
@@ -98,7 +97,6 @@ export const DEFAULT_PREMIUM = {
   active: false,
   purchasedAt: null,
   features: {
-    adFree: false,
     advancedAnalytics: false,
   },
 };

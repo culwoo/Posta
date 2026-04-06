@@ -743,7 +743,7 @@ export default function LandingPage() {
                 </motion.div>
             </RevealSection>
 
-            {/* ─── AdSense Approval Article (전략 A: 애드센스 승인 심사용 텍스트 섹션) ─── */}
+            {/* ─── 공연 기획 가이드 ─── */}
             <RevealSection className="landing-section" id="guide" style={{ padding: '4rem 2rem', background: 'rgba(255,255,255,0.02)' }}>
                 <motion.div variants={fadeUp} custom={0} style={{ maxWidth: '800px', margin: '0 auto', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
                     <h2 style={{ fontSize: '2rem', color: 'var(--text-primary)', marginBottom: '1.5rem', textAlign: 'center' }}>

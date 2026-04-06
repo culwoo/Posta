@@ -852,8 +852,8 @@ const ManageEvent = () => {
                             color: 'var(--text-tertiary)',
                             lineHeight: 1.5,
                         }}>
-                            관객들이 공연에 대한 응원과 감상을 자유롭게 남기는 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>을 열고,
-                            광고 없는 쾌적한 관객 화면을 제공하세요.
+                            관객들이 공연에 대한 응원과 감상을 자유롭게 남기는 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>을 열어
+                            관객과의 소통을 더 특별하게 만드세요.
                         </div>
                     </div>
                     <button
@@ -893,7 +893,7 @@ const ManageEvent = () => {
                     color: '#10b981',
                     fontWeight: 600,
                 }}>
-                    <Check size={16} /> Plus Pass 이용 중 — 응원 게시판 활성화 · 광고 제거 적용됨
+                    <Check size={16} /> Plus Pass 이용 중 — 응원 게시판 활성화됨
                 </div>
             )}
 

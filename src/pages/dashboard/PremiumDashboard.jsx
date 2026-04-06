@@ -17,7 +17,6 @@ const EVENT_FEATURES = [
   { key: 'reserve',  label: '예매 및 좌석 선택',     free: true, plus: true },
   { key: 'checkin',  label: 'QR 체크인 및 현장관리',  free: true, plus: true },
   { key: 'board',    label: '응원 및 방명록 게시판',   free: false, plus: true },
-  { key: 'adFree',   label: '관객 화면 광고 제거',    free: false, plus: true },
 ];
 
 const eventPlans = [
@@ -36,7 +35,7 @@ const eventPlans = [
     name: 'Plus Pass',
     price: TIER_PRICES.plus,
     period: '/ 공연 (일회성)',
-    description: '관객과 소통하는 응원 게시판을 열고, 광고 없는 쾌적한 화면을 제공하세요.',
+    description: '관객과 소통하는 응원 게시판을 열어 공연을 더 특별하게 만드세요.',
     icon: Zap,
     color: getTierColor('plus'),
     highlight: true,

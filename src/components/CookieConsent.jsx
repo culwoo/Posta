@@ -22,7 +22,7 @@ export default function CookieConsent() {
         <div style={styles.overlay}>
             <div style={styles.banner}>
                 <p style={styles.text}>
-                    이 사이트는 서비스 제공 및 사용자 경험 향상을 위해 쿠키와 Google Analytics, Google AdSense를 사용합니다.
+                    이 사이트는 서비스 제공 및 사용자 경험 향상을 위해 쿠키와 Google Analytics를 사용합니다.
                     자세한 내용은 <Link to="/privacy" style={styles.link}>개인정보처리방침</Link>을 확인해 주세요.
                 </p>
                 <button onClick={accept} style={styles.button}>

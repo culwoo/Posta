@@ -18,7 +18,6 @@ export default function PrivacyPolicy() {
                         <li>서비스 제공 및 운영: 공연 이벤트 생성, 예매 관리, QR 체크인</li>
                         <li>회원 관리: 본인 확인, 계정 관리, 로그인 인증</li>
                         <li>서비스 개선: 이용 통계 분석, 사용자 경험 향상</li>
-                        <li>광고 제공: Google AdSense를 통한 맞춤형 광고 게재</li>
                     </ul>
                 </section>
 
@@ -58,7 +57,7 @@ export default function PrivacyPolicy() {
                     <ul>
                         <li><strong>Firebase (Google):</strong> 인증, 데이터베이스, 호스팅 — <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Firebase 개인정보처리방침</a></li>
                         <li><strong>Google Analytics:</strong> 사이트 이용 통계 분석 — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google 개인정보처리방침</a></li>
-                        <li><strong>Google AdSense:</strong> 맞춤형 광고 게재 — <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">Google 광고 정책</a></li>
+
                         <li><strong>Lemon Squeezy:</strong> 결제 처리 — <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener noreferrer">Lemon Squeezy 개인정보처리방침</a></li>
                     </ul>
                     <p>이용자는 웹 브라우저 설정을 통해 쿠키 저장을 거부하거나 삭제할 수 있습니다. 단, 쿠키 거부 시 서비스 이용에 제한이 있을 수 있습니다.</p>
