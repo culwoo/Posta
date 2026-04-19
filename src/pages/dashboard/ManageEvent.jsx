@@ -35,9 +35,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import AIProgressTimer from '../../components/AIProgressTimer';
+import { DESIGN_PRESETS, DEFAULT_NOTE_PALETTE } from '../../config/designPresets';
+import DesignTemplateSelector from './DesignTemplateSelector';
 import DateFieldWithPicker from '../../components/DateFieldWithPicker';
 import TimeFieldWithPicker from '../../components/TimeFieldWithPicker';
-import { ensureContrast, hexToSrgb, relativeLuminance, contrastRatio } from '../../utils/color';
+import { ensureContrast } from '../../utils/color';
+import { openCheckout } from '../../utils/checkout';
 
 const DEFAULT_THEME = {
     primary: '#d05c80',
@@ -72,8 +75,22 @@ const TIMELINE_ICONS = [
     { value: 'utensils', label: '식사', symbol: '🍽️' },
 ];
 
-const FONT_PRESETS_MAIN = ['Pretendard', 'SUIT', 'Noto Sans KR', 'IBM Plex Sans KR'];
-const FONT_PRESETS_NOTE = ['Pretendard', 'Nanum Pen Script', 'Gowun Batang', 'MaruBuri'];
+const uniqueFonts = (...fonts) => [...new Set(fonts.filter(Boolean))];
+const FONT_PRESETS_MAIN = uniqueFonts(
+    'Pretendard',
+    'SUIT',
+    'Noto Sans KR',
+    'IBM Plex Sans KR',
+    ...DESIGN_PRESETS.map((preset) => preset.theme.fontMain)
+);
+const FONT_PRESETS_NOTE = uniqueFonts(
+    'Pretendard',
+    'Nanum Pen Script',
+    'Gowun Batang',
+    'MaruBuri',
+    'IBM Plex Sans KR',
+    ...DESIGN_PRESETS.map((preset) => preset.theme.fontNote)
+);
 
 const PREVIEW_TABS = [
     { path: '', label: '기본(홈)' },
@@ -128,7 +145,9 @@ const normalizeDraft = (draft) =>
             textPrimary: normalizePlain(draft.theme?.textPrimary || DEFAULT_THEME.textPrimary),
             accent: normalizePlain(draft.theme?.accent || DEFAULT_THEME.accent),
             fontMain: normalizeWhitespace(draft.theme?.fontMain || DEFAULT_THEME.fontMain),
-            fontNote: normalizeWhitespace(draft.theme?.fontNote || DEFAULT_THEME.fontNote)
+            fontNote: normalizeWhitespace(draft.theme?.fontNote || DEFAULT_THEME.fontNote),
+            templateId: normalizePlain(draft.theme?.templateId || 'custom'),
+            notePalette: (draft.theme?.notePalette || DEFAULT_NOTE_PALETTE).map(c => normalizePlain(c))
         }
     });
 
@@ -231,6 +250,10 @@ const ManageEvent = () => {
     const [fontMain, setFontMain] = useState(DEFAULT_THEME.fontMain);
     const [fontNote, setFontNote] = useState(DEFAULT_THEME.fontNote);
 
+    const [templateId, setTemplateId] = useState('custom');
+    const [notePalette, setNotePalette] = useState(DEFAULT_NOTE_PALETTE);
+    const [customThemeSnapshot, setCustomThemeSnapshot] = useState(null);
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } }),
@@ -273,7 +296,9 @@ const ManageEvent = () => {
             textPrimary: textColor,
             accent: accentColor,
             fontMain: normalizeWhitespace(fontMain) || DEFAULT_THEME.fontMain,
-            fontNote: normalizeWhitespace(fontNote) || DEFAULT_THEME.fontNote
+            fontNote: normalizeWhitespace(fontNote) || DEFAULT_THEME.fontNote,
+            notePalette,
+            templateId
         };
         sessionStorage.setItem(`preview_theme_${eventId}`, JSON.stringify(themeUpdate));
 
@@ -284,7 +309,7 @@ const ManageEvent = () => {
                 window.location.origin
             );
         }
-    }, [accentColor, bgColor, bgSecondaryColor, eventId, fontMain, fontNote, primaryColor, secondaryColor, textColor]);
+    }, [accentColor, bgColor, bgSecondaryColor, eventId, fontMain, fontNote, notePalette, primaryColor, secondaryColor, templateId, textColor]);
 
     const buildCurrentDraft = useCallback(
         () => ({
@@ -312,7 +337,9 @@ const ManageEvent = () => {
                 textPrimary: textColor,
                 accent: accentColor,
                 fontMain,
-                fontNote
+                fontNote,
+                templateId,
+                notePalette
             }
         }),
         [
@@ -337,7 +364,9 @@ const ManageEvent = () => {
             textColor,
             accentColor,
             fontMain,
-            fontNote
+            fontNote,
+            templateId,
+            notePalette
         ]
     );
 
@@ -392,7 +421,11 @@ const ManageEvent = () => {
                         textPrimary: toColorValue(data.theme?.textPrimary, DEFAULT_THEME.textPrimary),
                         accent: toColorValue(data.theme?.accent, DEFAULT_THEME.accent),
                         fontMain: normalizeWhitespace(data.theme?.fontMain) || DEFAULT_THEME.fontMain,
-                        fontNote: normalizeWhitespace(data.theme?.fontNote) || DEFAULT_THEME.fontNote
+                        fontNote: normalizeWhitespace(data.theme?.fontNote) || DEFAULT_THEME.fontNote,
+                        templateId: data.theme?.templateId || 'custom',
+                        notePalette: Array.isArray(data.theme?.notePalette) && data.theme.notePalette.length === 5
+                            ? data.theme.notePalette
+                            : DEFAULT_NOTE_PALETTE
                     }
                 };
 
@@ -420,6 +453,13 @@ const ManageEvent = () => {
                 setAccentColor(hydrated.theme.accent);
                 setFontMain(hydrated.theme.fontMain);
                 setFontNote(hydrated.theme.fontNote);
+                setTemplateId(hydrated.theme.templateId);
+                setNotePalette(hydrated.theme.notePalette);
+
+                setCustomThemeSnapshot({
+                    ...hydrated.theme,
+                    isAiExtracted: false
+                });
 
                 setBillingTier(data.billing?.tier || 'free');
 
@@ -450,7 +490,6 @@ const ManageEvent = () => {
         if (isCheckoutLoading) return;
         setIsCheckoutLoading(true);
         try {
-            const { openCheckout } = await import('../../utils/checkout');
             await openCheckout(eventId);
             setTimeout(() => setIsCheckoutLoading(false), 3000);
         } catch (error) {
@@ -459,6 +498,19 @@ const ManageEvent = () => {
             setIsCheckoutLoading(false);
         }
     }, [eventId, isCheckoutLoading]);
+
+    const handleTemplatePresetSelect = useCallback((preset) => {
+        setTemplateId(preset.id);
+        setNotePalette(preset.notePalette);
+        setPrimaryColor(preset.theme.primary);
+        setSecondaryColor(preset.theme.secondary);
+        setBgColor(preset.theme.bgPrimary);
+        setBgSecondaryColor(preset.theme.bgSecondary);
+        setTextColor(preset.theme.textPrimary);
+        setAccentColor(preset.theme.accent);
+        setFontMain(preset.theme.fontMain);
+        setFontNote(preset.theme.fontNote);
+    }, []);
 
     // 결제 모달이 자동으로 닫힐 때 로딩 상태 해제
     useEffect(() => {
@@ -557,6 +609,20 @@ const ManageEvent = () => {
                 setBgSecondaryColor(toColorValue(colors.bgSecondary, DEFAULT_THEME.bgSecondary));
                 setTextColor(correctedText);
                 setAccentColor(toColorValue(colors.secondary, DEFAULT_THEME.accent));
+                setTemplateId('custom');
+
+                setCustomThemeSnapshot({
+                    primary: toColorValue(colors.primary, DEFAULT_THEME.primary),
+                    secondary: toColorValue(colors.secondary, DEFAULT_THEME.secondary),
+                    bgPrimary: bg,
+                    bgSecondary: toColorValue(colors.bgSecondary, DEFAULT_THEME.bgSecondary),
+                    textPrimary: correctedText,
+                    accent: toColorValue(colors.secondary, DEFAULT_THEME.accent),
+                    fontMain: fontMain,
+                    fontNote: fontNote,
+                    notePalette: DEFAULT_NOTE_PALETTE,
+                    isAiExtracted: true
+                });
             } catch (error) {
                 console.error('Poster color extraction failed:', error);
                 alert('색상 자동 추출에 실패했습니다. 수동으로 조정해주세요.');
@@ -564,7 +630,7 @@ const ManageEvent = () => {
                 setExtractingColors(false);
             }
         },
-        [eventId]
+        [eventId, fontMain, fontNote]
     );
 
     const handlePosterUpload = async (event) => {
@@ -649,7 +715,9 @@ const ManageEvent = () => {
                 textPrimary: toColorValue(textColor, DEFAULT_THEME.textPrimary),
                 accent: toColorValue(accentColor, DEFAULT_THEME.accent),
                 fontMain: normalizeWhitespace(fontMain) || DEFAULT_THEME.fontMain,
-                fontNote: normalizeWhitespace(fontNote) || DEFAULT_THEME.fontNote
+                fontNote: normalizeWhitespace(fontNote) || DEFAULT_THEME.fontNote,
+                templateId: templateId || 'custom',
+                notePalette: notePalette
             }
         };
     };
@@ -683,6 +751,8 @@ const ManageEvent = () => {
             setAccentColor(normalized.theme.accent);
             setFontMain(normalized.theme.fontMain);
             setFontNote(normalized.theme.fontNote);
+            setTemplateId(normalized.theme.templateId);
+            setNotePalette(normalized.theme.notePalette);
 
             initialSnapshotRef.current = normalizeDraft(normalized);
             setReloadKey(Date.now());
@@ -745,13 +815,6 @@ const ManageEvent = () => {
         fontFamily: 'var(--font-main)',
     };
     const labelStyle = { display: 'block', marginBottom: '0.5rem', fontWeight: 500 };
-    const cardStyle = {
-        backgroundColor: 'var(--ui-surface-hover)',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        border: '1px solid var(--ui-border-soft)',
-    };
-    const sectionGap = { display: 'flex', flexDirection: 'column', gap: '1rem' };
 
     return (
         <div className={styles.pageContainer}>
@@ -852,8 +915,8 @@ const ManageEvent = () => {
                             color: 'var(--text-tertiary)',
                             lineHeight: 1.5,
                         }}>
-                            관객들이 공연에 대한 응원과 감상을 자유롭게 남기는 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>을 열어
-                            관객과의 소통을 더 특별하게 만드세요.
+                            관객 소통을 위한 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>과 프리미엄 <strong style={{ color: 'var(--text-secondary)' }}>디자인 템플릿</strong>으로
+                            공연을 더 특별하게 만드세요.
                         </div>
                     </div>
                     <button
@@ -893,7 +956,7 @@ const ManageEvent = () => {
                     color: '#10b981',
                     fontWeight: 600,
                 }}>
-                    <Check size={16} /> Plus Pass 이용 중 — 응원 게시판 활성화됨
+                    <Check size={16} /> Plus Pass 이용 중 — 응원 게시판 + 디자인 템플릿 활성화됨
                 </div>
             )}
 
@@ -942,8 +1005,8 @@ const ManageEvent = () => {
                                     <div key={label}>
                                         <label style={{ ...labelStyle, fontSize: '0.75rem', marginBottom: '0.3rem' }}>{label}</label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <input type="color" value={value} onChange={(event) => setter(event.target.value)} style={{ width: '24px', height: '24px', border: 'none', cursor: 'pointer', padding: 0 }} />
-                                            <input type="text" value={value} onChange={(event) => setter(event.target.value)} style={{ width: '60px', padding: '0.2rem', fontSize: '0.75rem', border: '1px solid var(--ui-border-soft)', borderRadius: '4px', background: 'var(--ui-surface-soft)', color: 'var(--text-primary)' }} />
+                                            <input type="color" value={value} onChange={(event) => { setter(event.target.value); setTemplateId('custom'); }} style={{ width: '24px', height: '24px', border: 'none', cursor: 'pointer', padding: 0 }} />
+                                            <input type="text" value={value} onChange={(event) => { setter(event.target.value); setTemplateId('custom'); }} style={{ width: '60px', padding: '0.2rem', fontSize: '0.75rem', border: '1px solid var(--ui-border-soft)', borderRadius: '4px', background: 'var(--ui-surface-soft)', color: 'var(--text-primary)' }} />
                                         </div>
                                     </div>
                                 ))}
@@ -958,7 +1021,7 @@ const ManageEvent = () => {
                                     value={mainFontPreset}
                                     onChange={(event) => {
                                         const v = event.target.value;
-                                        setFontMain(v === '__custom__' ? '' : v);
+                                        setFontMain(v === '__custom__' ? '' : v); setTemplateId('custom');
                                     }}
                                     style={{ width: '100%' }}
                                 >
@@ -975,7 +1038,7 @@ const ManageEvent = () => {
                                     value={noteFontPreset}
                                     onChange={(event) => {
                                         const v = event.target.value;
-                                        setFontNote(v === '__custom__' ? '' : v);
+                                        setFontNote(v === '__custom__' ? '' : v); setTemplateId('custom');
                                     }}
                                     style={{ width: '100%' }}
                                 >
@@ -988,6 +1051,15 @@ const ManageEvent = () => {
                             </div>
                         </div>
 
+                        <DesignTemplateSelector
+                            billingTier={billingTier}
+                            templateId={templateId}
+                            customThemeSnapshot={customThemeSnapshot}
+                            defaultTheme={DEFAULT_THEME}
+                            isCheckoutLoading={isCheckoutLoading}
+                            onPlusCheckout={handlePlusCheckout}
+                            onSelectPreset={handleTemplatePresetSelect}
+                        />
                         <h3 style={{ margin: '1rem 0 0 0' }}>기본 정보</h3>
                         <div>
                             <label style={labelStyle}>이벤트 제목</label>

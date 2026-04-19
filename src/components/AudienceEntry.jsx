@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { generateNickname } from '../utils/nickname';
 import classes from './AudienceEntry.module.css';
 
 const AudienceEntry = () => {

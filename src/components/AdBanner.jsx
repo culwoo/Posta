@@ -22,7 +22,7 @@ const AdBanner = ({ placement = 'dashboard', style = {} }) => {
     if (dismissed) return null;
 
     return (
-        <div style={{ ...style }}>
+        <div data-placement={placement} style={{ ...style }}>
             <div style={{
                 background: 'linear-gradient(135deg, rgba(237,233,254,0.9) 0%, rgba(250,245,255,0.9) 50%, rgba(240,231,255,0.9) 100%)',
                 border: '1px solid rgba(221,214,254,0.6)',

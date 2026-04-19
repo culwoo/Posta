@@ -30,10 +30,10 @@ const DateFieldWithPicker = ({
 }) => {
     const [fallbackOpen, setFallbackOpen] = useState(false);
 
-    const now = new Date();
-    const [fallbackYear, setFallbackYear] = useState(now.getFullYear());
-    const [fallbackMonth, setFallbackMonth] = useState(now.getMonth() + 1);
-    const [fallbackDay, setFallbackDay] = useState(now.getDate());
+    const [today] = useState(() => new Date());
+    const [fallbackYear, setFallbackYear] = useState(today.getFullYear());
+    const [fallbackMonth, setFallbackMonth] = useState(today.getMonth() + 1);
+    const [fallbackDay, setFallbackDay] = useState(today.getDate());
 
     useEffect(() => {
         const parsed = parseDate(value);
@@ -52,9 +52,9 @@ const DateFieldWithPicker = ({
     const displayLabel = useMemo(() => toDisplayLabel(value, placeholder), [value, placeholder]);
 
     const years = useMemo(() => {
-        const current = now.getFullYear();
+        const current = today.getFullYear();
         return Array.from({ length: 7 }, (_, i) => current - 1 + i);
-    }, []);
+    }, [today]);
 
     const days = useMemo(() => Array.from({ length: maxDay }, (_, i) => i + 1), [maxDay]);
 

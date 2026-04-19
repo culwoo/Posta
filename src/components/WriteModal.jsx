@@ -5,13 +5,15 @@ import { useEvent } from '../contexts/EventContext';
 import { Check, X } from 'lucide-react';
 import classes from './WriteModal.module.css';
 
-const POST_COLORS = [
+const DEFAULT_POST_COLORS = [
     { hex: '#FFF9B0', name: '버터 옐로우' },
     { hex: '#FFC4C4', name: '코랄 핑크' },
     { hex: '#C4F0FF', name: '스카이 블루' },
     { hex: '#C4FFD6', name: '민트 그린' },
     { hex: '#E2C4FF', name: '라벤더' }
 ];
+
+const PALETTE_NAMES = ['색상 1', '색상 2', '색상 3', '색상 4', '색상 5'];
 
 const toRgb = (hex) => {
     const value = String(hex || '').replace('#', '');
@@ -36,7 +38,16 @@ const withAlpha = (hex, alpha) => {
 
 const WriteModal = ({ onClose, postToEdit = null }) => {
     const { user } = useAuth();
-    const { eventId } = useEvent();
+    const { eventId, eventData } = useEvent();
+
+    // Build color palette: prefer event notePalette from template, fallback to defaults
+    const POST_COLORS = useMemo(() => {
+        const palette = eventData?.theme?.notePalette;
+        if (Array.isArray(palette) && palette.length === 5 && palette.every(c => /^#[0-9a-fA-F]{3,8}$/.test(c))) {
+            return palette.map((hex, i) => ({ hex, name: PALETTE_NAMES[i] || '색상 ' + (i + 1) }));
+        }
+        return DEFAULT_POST_COLORS;
+    }, [eventData?.theme?.notePalette]);
 
     const [content, setContent] = useState('');
     const [performers, setPerformers] = useState([]);
@@ -72,7 +83,7 @@ const WriteModal = ({ onClose, postToEdit = null }) => {
             const visible = postToEdit.visibleTo.filter((uid) => uid !== postToEdit.fromUid);
             setSelectedPerformers(visible);
         }
-    }, [postToEdit]);
+    }, [POST_COLORS, postToEdit]);
 
     const handleTogglePerformer = (uid) => {
         setSelectedPerformers((prev) => (prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]));

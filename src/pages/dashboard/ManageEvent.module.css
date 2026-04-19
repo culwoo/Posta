@@ -76,6 +76,7 @@
     flex-direction: column;
     gap: 1rem;
     flex: 1 1 500px;
+    min-width: 0;
 }
 
 .previewPanel {

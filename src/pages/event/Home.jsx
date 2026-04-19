@@ -96,7 +96,6 @@ const Home = () => {
     // Dynamic timeline colors derived from poster theme
     const theme = eventData?.theme;
     const primaryHex = theme?.primary || '#6c5ce7';
-    const secondaryHex = theme?.secondary || '#e0b02a';
     const bgPrimary = theme?.bgPrimary || '#3e402d';
 
     const timeColor = useMemo(() => ensureContrast(primaryHex, bgPrimary, 3.0), [primaryHex, bgPrimary]);

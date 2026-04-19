@@ -1,6 +1,6 @@
-﻿/* ===== Board Page: Glassmorphism ===== */
+/* ===== Board Page: Glassmorphism ===== */
 .board {
-    background-color: #0d1f1f;
+    background-color: var(--bg-secondary, #0d1f1f);
     min-height: calc(100vh - 60px);
     padding: 2rem;
     position: relative;
@@ -52,7 +52,7 @@
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    background: linear-gradient(135deg, rgba(208, 76, 49, 0.88), rgba(208, 76, 49, 0.95));
+    background: linear-gradient(135deg, var(--primary-color, #d04c31), var(--primary-color, #d04c31));
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     color: #fff;
@@ -66,18 +66,18 @@
     font-family: var(--font-main);
     font-size: 1rem;
     font-weight: 700;
-    box-shadow: 0 8px 28px rgba(208, 76, 49, 0.3);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 100;
-    border: 1px solid rgba(208, 76, 49, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     cursor: pointer;
     letter-spacing: 0.01em;
 }
 
 .fab:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 36px rgba(208, 76, 49, 0.4);
-    background: linear-gradient(135deg, rgba(208, 76, 49, 0.95), rgba(208, 76, 49, 1));
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    filter: brightness(1.1);
 }
 
 .fab:active {

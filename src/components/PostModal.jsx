@@ -96,11 +96,17 @@ const PostModal = ({ post, onClose, isMine, canDelete, onEdit, onDelete }) => {
         }
     };
 
-    if (!post) return null;
-
-    const palette = useMemo(() => getContrastPalette(post.color || '#FFF9B0'), [post.color]);
-    const formattedDate = `${new Date(post.createdAt).toLocaleDateString()} ${new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const palette = useMemo(() => getContrastPalette(post?.color || '#FFF9B0'), [post?.color]);
+    const formattedDate = useMemo(() => {
+        if (!post?.createdAt) return '';
+        const createdAt = typeof post.createdAt.toDate === 'function'
+            ? post.createdAt.toDate()
+            : new Date(post.createdAt);
+        return `${createdAt.toLocaleDateString()} ${createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }, [post?.createdAt]);
     const isAdmin = user?.isAdmin === true;
+
+    if (!post) return null;
 
     return (
         <div className={classes.overlay} onClick={onClose}>

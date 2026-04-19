@@ -17,6 +17,7 @@ const EVENT_FEATURES = [
   { key: 'reserve',  label: '예매 및 좌석 선택',     free: true, plus: true },
   { key: 'checkin',  label: 'QR 체크인 및 현장관리',  free: true, plus: true },
   { key: 'board',    label: '응원 및 방명록 게시판',   free: false, plus: true },
+  { key: 'template', label: '프리미엄 디자인 템플릿',   free: false, plus: true },
 ];
 
 const eventPlans = [
@@ -35,7 +36,7 @@ const eventPlans = [
     name: 'Plus Pass',
     price: TIER_PRICES.plus,
     period: '/ 공연 (일회성)',
-    description: '관객과 소통하는 응원 게시판을 열어 공연을 더 특별하게 만드세요.',
+    description: '응원 게시판과 프리미엄 디자인 템플릿으로 공연을 더 특별하게 만드세요.',
     icon: Zap,
     color: getTierColor('plus'),
     highlight: true,
@@ -150,7 +151,7 @@ const PremiumDashboard = () => {
           fontSize: '0.9rem',
           fontFamily: 'var(--font-main)',
         }}>
-          공연별로 Plus Pass를 적용하여 관객 경험을 한 단계 높이세요.
+          공연별로 Plus Pass를 적용하여 응원 게시판과 디자인 템플릿을 활용하세요.
         </p>
       </div>
 
@@ -182,7 +183,7 @@ const PremiumDashboard = () => {
               fontFamily: 'var(--font-main)',
               letterSpacing: '-0.02em',
             }}>
-              응원 게시판이란?
+              Plus 전용 기능
             </h3>
             <p style={{
               margin: 0,
@@ -191,9 +192,9 @@ const PremiumDashboard = () => {
               fontFamily: 'var(--font-main)',
               lineHeight: 1.65,
             }}>
-              관객들이 공연에 대한 응원, 감상, 추억을 자유롭게 남기는 소통 공간이에요.
-              공연 전 설렘, 공연 중 감동, 공연 후 여운까지 — 관객의 목소리가 모여
-              공연을 더 특별하게 만듭니다.
+              관객 응원 게시판과 프리미엄 디자인 템플릿을 사용할 수 있어요.
+              게시판에서는 관객의 응원과 감상이 모이고, 디자인 템플릿으로는
+              이벤트 전체를 고급스러운 테마로 꾸밀 수 있습니다.
             </p>
           </div>
         </div>

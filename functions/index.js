@@ -58,7 +58,7 @@ const resolveTicketBaseUrl = (originUrl, publicBaseUrl) => {
         try {
             const parsed = new URL(urlString);
             return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -184,12 +184,6 @@ const normalizeHex = (value, fallback) => {
     const raw = String(value || "").trim();
     return /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw : fallback;
 };
-
-const normalizeHost = (value) =>
-    String(value || "")
-        .trim()
-        .replace(/^https?:\/\//i, "")
-        .replace(/\/+$/, "");
 
 const getLemonCheckoutConfig = () => {
     const storeId = String(LEMON_SQUEEZY_STORE_ID.value() || "").trim();

@@ -98,7 +98,7 @@ const MoreDashboard = () => {
 
             <GlassCard level={1} style={{ padding: '0.8rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {menuItems.map(({ icon: Icon, title, desc, action }) => (
+                    {menuItems.map(({ icon, title, desc, action }) => (
                         <div
                             key={title}
                             style={{
@@ -123,7 +123,7 @@ const MoreDashboard = () => {
                                     fontFamily: 'var(--font-main)',
                                     fontSize: '0.95rem',
                                 }}>
-                                    <Icon size={16} /> {title}
+                                    {React.createElement(icon, { size: 16 })} {title}
                                 </div>
                                 <div style={{
                                     color: 'var(--text-tertiary)',

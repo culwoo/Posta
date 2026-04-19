@@ -13,32 +13,32 @@ import { openCheckout } from '../../utils/checkout';
  * Blur overlay shown when a user doesn't have access to a feature.
  * Renders on top of the blurred page content.
  */
-export function PaywallOverlay({ featureName, requiredTier, currentTier, price }) {
+export function PaywallOverlay({ requiredTier, price }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { eventData } = useEvent();
   const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
+  const eventId = eventData?.id;
 
   const displayPrice = price || TIER_PRICES[requiredTier] || 0;
   const requiredLabel = getTierLabel(requiredTier);
   const requiredColor = getTierColor(requiredTier);
-  const currentLabel = getTierLabel(currentTier);
 
   // 현재 로그인한 사용자가 이벤트 생성자인지 (주최자인지) 확인
   const isOrganizer = Boolean(user?.uid && eventData?.createdBy === user.uid);
 
   const handleCheckoutClick = React.useCallback(async () => {
-    if (!eventData?.id || isCheckoutLoading) return;
+    if (!eventId || isCheckoutLoading) return;
     setIsCheckoutLoading(true);
     try {
-      await openCheckout(eventData.id);
+      await openCheckout(eventId);
       setTimeout(() => setIsCheckoutLoading(false), 3000);
     } catch (error) {
       console.error('Checkout initialization failed:', error);
       alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
       setIsCheckoutLoading(false);
     }
-  }, [eventData?.id, isCheckoutLoading]);
+  }, [eventId, isCheckoutLoading]);
 
   return (
     <div style={{
@@ -80,7 +80,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
             marginBottom: '0.75rem',
             letterSpacing: '-0.02em',
           }}>
-            응원 게시판
+            응원 게시판 + 디자인 템플릿
           </h3>
 
           {/* Feature description */}
@@ -92,6 +92,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
           }}>
             관객들이 공연에 대한 응원, 감상, 추억을
             <br />자유롭게 남기는 소통 공간이에요.
+            <br />프리미엄 디자인 템플릿도 사용할 수 있어요.
           </p>
 
           {/* CTA */}
@@ -111,7 +112,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
                 disabled={isCheckoutLoading}
                 style={{ width: '100%', marginBottom: '0.75rem' }}
               >
-                {isCheckoutLoading ? '결제 창 준비 중...' : '응원 게시판 열기'}
+                {isCheckoutLoading ? '결제 창 준비 중...' : 'Plus 기능 활성화하기'}
               </GlassButton>
               <GlassButton
                 variant="secondary"
@@ -129,7 +130,7 @@ export function PaywallOverlay({ featureName, requiredTier, currentTier, price }
                marginBottom: '1.25rem',
                lineHeight: 1.6,
              }}>
-               이 공연의 주최자가 응원 게시판을 열면
+               이 공연의 주최자가 Plus를 활성화하면
                <br />이곳에서 자유롭게 응원을 남길 수 있어요.
              </p>
           )}

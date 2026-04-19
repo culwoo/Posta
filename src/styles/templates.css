@@ -1,0 +1,1473 @@
+/* ═══════════════════════════════════════════════════════════════
+   Posta Design Templates – CSS Override System
+   Applied via data-template="<id>" on <html>
+   
+   Each template transforms EVERY visual surface:
+     - Page background composition & atmospheric effects
+     - Card geometry (radius, shadow model, border treatment)
+     - Typography system (family, weight, spacing, transform)
+     - Component morphology (StickyNote, FAB, GlassCard, Poster)
+     - Depth & elevation model
+     - Micro-interactions & hover states
+     - Decorative pseudo-elements
+   
+   Design references:
+     midnight-terminal → Spotify (dark immersive, pill geometry, green accent)
+     warm-editorial    → Notion  (warm neutrals, whisper borders, serif warmth)
+     neon-pulse        → ElevenLabs (ethereal lightness, multi-layer shadows, warm stone)
+     stage-noir        → Lamborghini (true black cathedral, gold accent, zero-radius)
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────────────────────────
+   1. MIDNIGHT TERMINAL  ·  Inspired by Spotify
+   "Content-first darkness" — near-black cocoon where content glows.
+   Pill geometry, heavy shadows, uppercase tracking, green accent.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="midnight-terminal"] {
+    --tpl-radius-sm: 9999px;
+    --tpl-radius-md: 8px;
+    --tpl-radius-lg: 9999px;
+    --tpl-shadow-card: rgba(0,0,0,0.3) 0px 8px 8px;
+    --tpl-shadow-elevated: rgba(0,0,0,0.5) 0px 8px 24px;
+    --tpl-font-display: 'IBM Plex Mono', 'Fira Code', 'Consolas', monospace;
+    --tpl-font-body: 'IBM Plex Sans KR', 'IBM Plex Sans', -apple-system, sans-serif;
+}
+
+/* ── Page-level atmosphere ── */
+[data-template="midnight-terminal"] [class*="board"],
+[data-template="midnight-terminal"] [class*="home"] {
+    background-color: var(--bg-primary, #121212) !important;
+    background-image:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(30,215,96,0.04) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 80% at 80% 100%, rgba(30,215,96,0.02) 0%, transparent 50%) !important;
+}
+
+/* ── Card surfaces: dark charcoal ── */
+[data-template="midnight-terminal"] [class*="GlassCard"],
+[data-template="midnight-terminal"] [class*="glassCard"],
+[data-template="midnight-terminal"] [class*="nicknameForm"] {
+    background: #181818 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    backdrop-filter: none !important;
+}
+
+/* ── Poster card: subtle lift ── */
+[data-template="midnight-terminal"] [class*="posterCard"] {
+    border-radius: 6px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-elevated) !important;
+}
+
+/* ── Typography: compact monospace system ── */
+[data-template="midnight-terminal"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15em !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 30px rgba(30,215,96,0.15) !important;
+}
+
+[data-template="midnight-terminal"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+    font-size: 0.82rem !important;
+    color: #b3b3b3 !important;
+}
+
+/* ── StickyNote: dark surface cards ── */
+[data-template="midnight-terminal"] [class*="note"] {
+    border-radius: 6px !important;
+    border: none !important;
+    box-shadow:
+        var(--tpl-shadow-card),
+        rgb(18,18,18) 0px 1px 0px,
+        rgb(62,62,62) 0px 0px 0px 1px inset !important;
+    font-family: var(--tpl-font-body) !important;
+    position: relative !important;
+    transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+}
+
+[data-template="midnight-terminal"] [class*="note"]:hover {
+    box-shadow:
+        var(--tpl-shadow-elevated),
+        rgb(18,18,18) 0px 1px 0px,
+        rgb(80,80,80) 0px 0px 0px 1px inset !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Note content: monospace meta, system body */
+[data-template="midnight-terminal"] [class*="note"] [class*="from"]::before {
+    content: '▸ ' !important;
+    color: #1ed760;
+    font-family: var(--tpl-font-display);
+    font-size: 0.85em;
+}
+
+[data-template="midnight-terminal"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.55 !important;
+}
+
+/* openHint: pill badge */
+[data-template="midnight-terminal"] [class*="openHint"] {
+    border: none !important;
+    background: #1f1f1f !important;
+    border-radius: 9999px !important;
+    box-shadow: rgb(62,62,62) 0px 0px 0px 1px inset !important;
+    font-family: var(--tpl-font-display) !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.4px !important;
+}
+
+/* ── FAB: green pill, Spotify play-button energy ── */
+[data-template="midnight-terminal"] [class*="fab"] {
+    border-radius: 9999px !important;
+    background: #1ed760 !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-elevated) !important;
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.4px !important;
+    font-size: 0.82rem !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+
+[data-template="midnight-terminal"] [class*="fab"]:hover {
+    background: #1db954 !important;
+    box-shadow: rgba(30,215,96,0.3) 0px 0px 30px, rgba(0,0,0,0.5) 0px 8px 24px !important;
+}
+
+/* ── Section titles: monospace system ── */
+[data-template="midnight-terminal"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+}
+
+/* ── Inputs: dark recessed ── */
+[data-template="midnight-terminal"] [class*="nicknameControls"] input {
+    background: #1f1f1f !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset !important;
+    color: #ffffff !important;
+}
+
+[data-template="midnight-terminal"] [class*="nicknameControls"] button {
+    border-radius: 9999px !important;
+    background: #1ed760 !important;
+    color: #000000 !important;
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ── Empty state ── */
+[data-template="midnight-terminal"] [class*="emptyState"] {
+    font-family: var(--tpl-font-display) !important;
+    color: #b3b3b3 !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   2. WARM EDITORIAL  ·  Inspired by Notion
+   "Warm minimalism" — analog paper warmth, whisper borders,
+   serif headings, compressed letter-spacing, soft multi-layer shadows.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="warm-editorial"] {
+    --tpl-radius-sm: 4px;
+    --tpl-radius-md: 12px;
+    --tpl-radius-lg: 16px;
+    --tpl-shadow-card: rgba(0,0,0,0.04) 0px 4px 18px, rgba(0,0,0,0.027) 0px 2px 7.85px, rgba(0,0,0,0.02) 0px 0.8px 2.93px, rgba(0,0,0,0.01) 0px 0.175px 1.04px;
+    --tpl-shadow-deep: rgba(0,0,0,0.01) 0px 1px 3px, rgba(0,0,0,0.02) 0px 3px 7px, rgba(0,0,0,0.02) 0px 7px 15px, rgba(0,0,0,0.04) 0px 14px 28px, rgba(0,0,0,0.05) 0px 23px 52px;
+    --tpl-border-whisper: 1px solid rgba(0,0,0,0.1);
+    --tpl-font-display: 'Gowun Batang', 'Noto Serif KR', Georgia, serif;
+    --tpl-font-body: 'Pretendard', 'Inter', -apple-system, system-ui, sans-serif;
+    --tpl-warm-white: #f6f5f4;
+    --tpl-warm-dark: #31302e;
+    --tpl-warm-gray: #615d59;
+    --tpl-warm-muted: #a39e98;
+}
+
+/* ── Page atmosphere: warm white canvas ── */
+[data-template="warm-editorial"] [class*="board"] {
+    background-color: var(--bg-secondary, #f6f5f4) !important;
+    background-image: none !important;
+}
+
+[data-template="warm-editorial"] [class*="home"] {
+    background-color: var(--bg-primary, #ffffff) !important;
+}
+
+/* ── Card surfaces: white with whisper borders ── */
+[data-template="warm-editorial"] [class*="GlassCard"],
+[data-template="warm-editorial"] [class*="glassCard"] {
+    background: #ffffff !important;
+    border: var(--tpl-border-whisper) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="warm-editorial"] [class*="nicknameForm"] {
+    background: #ffffff !important;
+    border: var(--tpl-border-whisper) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    backdrop-filter: none !important;
+}
+
+/* ── Poster: generous rounded corners, whisper border ── */
+[data-template="warm-editorial"] [class*="posterCard"] {
+    border-radius: 16px !important;
+    border: var(--tpl-border-whisper) !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+}
+
+/* ── Typography: compressed serif display, warm body ── */
+[data-template="warm-editorial"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.0 !important;
+    color: var(--tpl-warm-dark) !important;
+}
+
+[data-template="warm-editorial"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+    font-size: 1rem !important;
+    color: var(--tpl-warm-gray) !important;
+    font-style: normal !important;
+}
+
+/* ── StickyNote: white cards, whisper borders, soft shadows ── */
+[data-template="warm-editorial"] [class*="note"] {
+    border-radius: 12px !important;
+    border: var(--tpl-border-whisper) !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    font-family: var(--tpl-font-body) !important;
+    position: relative !important;
+    transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+[data-template="warm-editorial"] [class*="note"]:hover {
+    box-shadow: var(--tpl-shadow-deep) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* Note from: weight 600, warm dark */
+[data-template="warm-editorial"] [class*="note"] [class*="from"] {
+    font-weight: 600 !important;
+    font-style: normal !important;
+    color: var(--tpl-warm-dark) !important;
+}
+
+/* Note content: readable with warm spacing */
+[data-template="warm-editorial"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.65 !important;
+    color: var(--tpl-warm-gray) !important;
+}
+
+/* openHint: Notion-style warm pill badge */
+[data-template="warm-editorial"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-warm-white) !important;
+    color: var(--tpl-warm-dark) !important;
+    border-radius: 9999px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.125px !important;
+}
+
+/* ── FAB: warm dark, subtle radius ── */
+[data-template="warm-editorial"] [class*="fab"] {
+    border-radius: 4px !important;
+    background: var(--tpl-warm-dark) !important;
+    border: 1px solid transparent !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    font-family: var(--tpl-font-body) !important;
+    letter-spacing: normal !important;
+    font-weight: 600 !important;
+    font-size: 0.94rem !important;
+    text-transform: none !important;
+    color: #ffffff !important;
+}
+
+[data-template="warm-editorial"] [class*="fab"]:hover {
+    background: var(--tpl-warm-gray) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+}
+
+/* ── Section titles: serif with negative tracking ── */
+[data-template="warm-editorial"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+    text-transform: none !important;
+}
+
+/* ── Inputs: clean, minimal ── */
+[data-template="warm-editorial"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: 1px solid #dddddd !important;
+    border-radius: 4px !important;
+    color: rgba(0,0,0,0.9) !important;
+    box-shadow: none !important;
+}
+
+[data-template="warm-editorial"] [class*="nicknameControls"] input:focus {
+    border-color: var(--tpl-warm-dark) !important;
+    box-shadow: 0 0 0 2px rgba(49,48,46,0.12) !important;
+}
+
+[data-template="warm-editorial"] [class*="nicknameControls"] button {
+    border-radius: 4px !important;
+    background: var(--tpl-warm-dark) !important;
+    color: #ffffff !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 600 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Warm white section alternation */
+[data-template="warm-editorial"] [class*="board"]::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0; left: 0; right: 0 !important;
+    height: 120px !important;
+    background: linear-gradient(180deg, rgba(246,245,244,0.6) 0%, transparent 100%) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+}
+
+/* ── Empty state: warm gray, serif ── */
+[data-template="warm-editorial"] [class*="emptyState"] {
+    font-family: var(--tpl-font-display) !important;
+    color: var(--tpl-warm-muted) !important;
+    font-style: italic !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   3. NEON PULSE  ·  Inspired by ElevenLabs
+   "Ethereal warmth" — near-white canvas, whisper-thin display type,
+   multi-layered sub-0.1 shadows, warm stone accents, pill buttons.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="neon-pulse"] {
+    --tpl-radius-sm: 9999px;
+    --tpl-radius-md: 16px;
+    --tpl-radius-lg: 24px;
+    --tpl-shadow-inset: rgba(0,0,0,0.075) 0px 0px 0px 0.5px inset;
+    --tpl-shadow-outline: rgba(0,0,0,0.06) 0px 0px 0px 1px;
+    --tpl-shadow-soft: rgba(0,0,0,0.04) 0px 4px 4px;
+    --tpl-shadow-warm: rgba(78,50,23,0.04) 0px 6px 16px;
+    --tpl-shadow-card: rgba(0,0,0,0.06) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 1px 2px, rgba(0,0,0,0.04) 0px 2px 4px;
+    --tpl-font-display: 'Pretendard', -apple-system, system-ui, sans-serif;
+    --tpl-font-body: 'Pretendard', 'Inter', -apple-system, sans-serif;
+    --tpl-warm-stone: rgba(245, 242, 239, 0.8);
+    --tpl-warm-stone-solid: #f5f2ef;
+}
+
+/* ── Page atmosphere: luminous white ── */
+[data-template="neon-pulse"] [class*="board"] {
+    background-color: var(--bg-secondary, #f5f5f5) !important;
+    background-image: none !important;
+}
+
+[data-template="neon-pulse"] [class*="home"] {
+    background-color: var(--bg-primary, #ffffff) !important;
+}
+
+/* ── Card surfaces: barely-there elevation ── */
+[data-template="neon-pulse"] [class*="GlassCard"],
+[data-template="neon-pulse"] [class*="glassCard"] {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: var(--tpl-shadow-inset), var(--tpl-shadow-outline), var(--tpl-shadow-soft) !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="neon-pulse"] [class*="nicknameForm"] {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: var(--tpl-shadow-inset), var(--tpl-shadow-outline), var(--tpl-shadow-soft) !important;
+    backdrop-filter: none !important;
+}
+
+/* ── Poster: generous radius, edge shadow ── */
+[data-template="neon-pulse"] [class*="posterCard"] {
+    border-radius: 20px !important;
+    border: none !important;
+    box-shadow: rgba(0,0,0,0.08) 0px 0px 0px 0.5px, var(--tpl-shadow-soft) !important;
+}
+
+/* ── Typography: light weight display, airy body ── */
+[data-template="neon-pulse"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.08 !important;
+}
+
+[data-template="neon-pulse"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.18px !important;
+    font-size: 1rem !important;
+    color: #4e4e4e !important;
+    text-transform: none !important;
+    text-shadow: none !important;
+}
+
+/* ── StickyNote: whisper-edge cards with warm shadow ── */
+[data-template="neon-pulse"] [class*="note"] {
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow:
+        var(--tpl-shadow-inset),
+        var(--tpl-shadow-outline),
+        var(--tpl-shadow-soft) !important;
+    font-family: var(--tpl-font-body) !important;
+    position: relative !important;
+    transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+[data-template="neon-pulse"] [class*="note"]:hover {
+    box-shadow:
+        var(--tpl-shadow-inset),
+        var(--tpl-shadow-outline),
+        var(--tpl-shadow-warm) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* Note content: airy letter-spacing */
+[data-template="neon-pulse"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.6 !important;
+    letter-spacing: 0.16px !important;
+    color: #4e4e4e !important;
+}
+
+[data-template="neon-pulse"] [class*="note"] [class*="from"] {
+    font-weight: 500 !important;
+    color: #000000 !important;
+}
+
+/* openHint: warm stone chip */
+[data-template="neon-pulse"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-warm-stone) !important;
+    border-radius: 9999px !important;
+    box-shadow: var(--tpl-shadow-warm) !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    color: #000000 !important;
+}
+
+/* ── FAB: warm stone pill, signature ElevenLabs touch ── */
+[data-template="neon-pulse"] [class*="fab"] {
+    border-radius: 30px !important;
+    background: var(--tpl-warm-stone) !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-warm) !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+    font-size: 0.94rem !important;
+    color: #000000 !important;
+    text-transform: none !important;
+    animation: none !important;
+}
+
+[data-template="neon-pulse"] [class*="fab"]:hover {
+    box-shadow: rgba(78,50,23,0.08) 0px 8px 24px !important;
+    transform: translateY(-2px) !important;
+    background: rgba(245, 242, 239, 1) !important;
+}
+
+/* ── Section titles: light weight with negative tracking ── */
+[data-template="neon-pulse"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: none !important;
+    text-transform: none !important;
+}
+
+/* ── Inputs: clean with inset shadow borders ── */
+[data-template="neon-pulse"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: var(--tpl-shadow-inset), rgba(0,0,0,0.1) 0px 0px 0px 1px inset !important;
+    color: #000000 !important;
+}
+
+[data-template="neon-pulse"] [class*="nicknameControls"] button {
+    border-radius: 9999px !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 500 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ── Empty state ── */
+[data-template="neon-pulse"] [class*="emptyState"] {
+    color: #777169 !important;
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 300 !important;
+    text-shadow: none !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   4. STAGE NOIR  ·  Inspired by Lamborghini
+   "Cathedral of darkness" — true black #000, gold accent,
+   zero border-radius, uppercase everything, extreme scale,
+   depth through surface-color layering (no shadows).
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="stage-noir"] {
+    --tpl-radius-sm: 0px;
+    --tpl-radius-md: 0px;
+    --tpl-radius-lg: 0px;
+    --tpl-gold: #FFC000;
+    --tpl-gold-dark: #917300;
+    --tpl-gold-text: #FFCE3E;
+    --tpl-charcoal: #202020;
+    --tpl-dark-iron: #181818;
+    --tpl-ash: #7D7D7D;
+    --tpl-font-display: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+    --tpl-font-body: 'MaruBuri', 'Pretendard', sans-serif;
+}
+
+/* ── Page atmosphere: absolute black void ── */
+[data-template="stage-noir"] [class*="board"],
+[data-template="stage-noir"] [class*="home"] {
+    background-color: #000000 !important;
+    background-image: none !important;
+}
+
+/* ── Card surfaces: charcoal on black, NO shadows ── */
+[data-template="stage-noir"] [class*="GlassCard"],
+[data-template="stage-noir"] [class*="glassCard"] {
+    background: var(--tpl-charcoal) !important;
+    border: none !important;
+    border-radius: 0px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="stage-noir"] [class*="nicknameForm"] {
+    background: var(--tpl-charcoal) !important;
+    border: none !important;
+    border-radius: 0px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border-bottom: 1px solid var(--tpl-charcoal) !important;
+}
+
+/* ── Poster: sharp edges, cinematic ── */
+[data-template="stage-noir"] [class*="posterCard"] {
+    border-radius: 0px !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ── Typography: UPPERCASE EVERYTHING, extreme scale ── */
+[data-template="stage-noir"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-weight: 400 !important;
+    line-height: 0.95 !important;
+}
+
+[data-template="stage-noir"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+    font-size: 0.75rem !important;
+    color: var(--tpl-ash) !important;
+    font-weight: 400 !important;
+}
+
+/* ── StickyNote: charcoal surfaces emerging from black ── */
+[data-template="stage-noir"] [class*="note"] {
+    border-radius: 0px !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: var(--tpl-charcoal) !important;
+    font-family: var(--tpl-font-body) !important;
+    position: relative !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* Gold top-accent line — the ONLY decoration */
+[data-template="stage-noir"] [class*="note"]::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: var(--tpl-gold) !important;
+    z-index: 10 !important;
+}
+
+[data-template="stage-noir"] [class*="note"]:hover {
+    background-color: #282828 !important;
+}
+
+/* Note from: uppercase, tracked, gold tint */
+[data-template="stage-noir"] [class*="note"] [class*="from"] {
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    font-size: 0.7rem !important;
+    font-weight: 400 !important;
+    color: var(--tpl-gold-text) !important;
+    font-family: var(--tpl-font-display) !important;
+}
+
+/* Note content: warm serif body */
+[data-template="stage-noir"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.65 !important;
+    color: #F5F5F5 !important;
+}
+
+/* openHint: metallic badge */
+[data-template="stage-noir"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-ash) !important;
+    border-radius: 2px !important;
+    color: var(--tpl-charcoal) !important;
+    font-family: var(--tpl-font-display) !important;
+    font-size: 0.6rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 700 !important;
+}
+
+/* ── FAB: Lamborghini Gold CTA — sharp, angular, commanding ── */
+[data-template="stage-noir"] [class*="fab"] {
+    border-radius: 0px !important;
+    background: var(--tpl-gold) !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-size: 0.85rem !important;
+    color: #000000 !important;
+    font-weight: 400 !important;
+}
+
+[data-template="stage-noir"] [class*="fab"]:hover {
+    background: var(--tpl-gold-dark) !important;
+    transform: none !important;
+    filter: none !important;
+}
+
+/* ── Section titles: uppercase, normal weight, commanding ── */
+[data-template="stage-noir"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 400 !important;
+}
+
+/* ── Inputs: dark iron, sharp ── */
+[data-template="stage-noir"] [class*="nicknameControls"] input {
+    background: var(--tpl-dark-iron) !important;
+    border: 1px solid var(--tpl-ash) !important;
+    border-radius: 0px !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+[data-template="stage-noir"] [class*="nicknameControls"] input:focus {
+    border-color: var(--tpl-gold) !important;
+    box-shadow: none !important;
+}
+
+[data-template="stage-noir"] [class*="nicknameControls"] button {
+    border-radius: 0px !important;
+    background: var(--tpl-gold) !important;
+    color: #000000 !important;
+    font-family: var(--tpl-font-display) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 400 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ── Cinematic letterbox accents ── */
+[data-template="stage-noir"] [class*="board"]::before,
+[data-template="stage-noir"] [class*="board"]::after {
+    content: '' !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: var(--tpl-gold) !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+}
+
+[data-template="stage-noir"] [class*="board"]::before {
+    top: 0 !important;
+}
+
+[data-template="stage-noir"] [class*="board"]::after {
+    bottom: 0 !important;
+}
+
+/* ── Empty state: gold whisper ── */
+[data-template="stage-noir"] [class*="emptyState"] {
+    font-family: var(--tpl-font-display) !important;
+    color: var(--tpl-ash) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    font-weight: 400 !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   5. APPLE CINEMA  ·  Inspired by Apple
+   "Cinematic minimalism" — binary black/white, blue accent,
+   tight typography, SF Pro-like precision, soft diffused shadows.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="apple-cinema"] {
+    --tpl-radius-sm: 8px;
+    --tpl-radius-md: 8px;
+    --tpl-radius-lg: 12px;
+    --tpl-shadow-card: rgba(0,0,0,0.22) 3px 5px 30px 0px;
+    --tpl-font-display: 'Pretendard', -apple-system, 'Helvetica Neue', sans-serif;
+    --tpl-font-body: 'Pretendard', -apple-system, 'Helvetica Neue', sans-serif;
+    --tpl-apple-blue: #0071e3;
+    --tpl-dark-surface: #1d1d1f;
+    --tpl-light-gray: #f5f5f7;
+}
+
+[data-template="apple-cinema"] [class*="board"],
+[data-template="apple-cinema"] [class*="home"] {
+    background-color: var(--bg-primary, #000000) !important;
+    background-image: none !important;
+}
+
+[data-template="apple-cinema"] [class*="GlassCard"],
+[data-template="apple-cinema"] [class*="glassCard"],
+[data-template="apple-cinema"] [class*="nicknameForm"] {
+    background: var(--tpl-dark-surface) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="apple-cinema"] [class*="posterCard"] {
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+}
+
+[data-template="apple-cinema"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.07 !important;
+}
+
+[data-template="apple-cinema"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.01em !important;
+    font-size: 1rem !important;
+    color: rgba(255,255,255,0.6) !important;
+}
+
+[data-template="apple-cinema"] [class*="note"] {
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    transition: background-color 0.2s ease !important;
+}
+
+[data-template="apple-cinema"] [class*="note"]:hover {
+    box-shadow: var(--tpl-shadow-card) !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-template="apple-cinema"] [class*="note"] [class*="from"] {
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+
+[data-template="apple-cinema"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.47 !important;
+    letter-spacing: -0.01em !important;
+}
+
+[data-template="apple-cinema"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-dark-surface) !important;
+    border-radius: 980px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 400 !important;
+    color: rgba(255,255,255,0.6) !important;
+}
+
+[data-template="apple-cinema"] [class*="fab"] {
+    border-radius: 980px !important;
+    background: var(--tpl-apple-blue) !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 0.94rem !important;
+    color: #ffffff !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+[data-template="apple-cinema"] [class*="fab"]:hover {
+    filter: brightness(1.1) !important;
+    transform: none !important;
+}
+
+[data-template="apple-cinema"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    text-transform: none !important;
+}
+
+[data-template="apple-cinema"] [class*="nicknameControls"] input {
+    background: #272729 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+[data-template="apple-cinema"] [class*="nicknameControls"] button {
+    border-radius: 8px !important;
+    background: var(--tpl-apple-blue) !important;
+    color: #ffffff !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    border: none !important;
+}
+
+[data-template="apple-cinema"] [class*="emptyState"] {
+    color: rgba(255,255,255,0.48) !important;
+    font-family: var(--tpl-font-body) !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   6. AIRBNB WARMTH  ·  Inspired by Airbnb
+   "Travel warmth" — pure white canvas, coral accent,
+   generous rounding, three-layer shadows, warm near-black text.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="airbnb-warmth"] {
+    --tpl-radius-sm: 8px;
+    --tpl-radius-md: 20px;
+    --tpl-radius-lg: 32px;
+    --tpl-shadow-card: rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px;
+    --tpl-shadow-hover: rgba(0,0,0,0.08) 0px 4px 12px;
+    --tpl-font-display: 'Pretendard', -apple-system, system-ui, sans-serif;
+    --tpl-font-body: 'Pretendard', -apple-system, system-ui, sans-serif;
+    --tpl-coral: #ff385c;
+    --tpl-coral-dark: #e00b41;
+    --tpl-near-black: #222222;
+}
+
+[data-template="airbnb-warmth"] [class*="board"],
+[data-template="airbnb-warmth"] [class*="home"] {
+    background-color: var(--bg-primary, #ffffff) !important;
+    background-image: none !important;
+}
+
+[data-template="airbnb-warmth"] [class*="GlassCard"],
+[data-template="airbnb-warmth"] [class*="glassCard"],
+[data-template="airbnb-warmth"] [class*="nicknameForm"] {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="airbnb-warmth"] [class*="posterCard"] {
+    border-radius: 20px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+}
+
+[data-template="airbnb-warmth"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.14 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="airbnb-warmth"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+    color: #6a6a6a !important;
+}
+
+[data-template="airbnb-warmth"] [class*="note"] {
+    border-radius: 20px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+    font-family: var(--tpl-font-body) !important;
+    transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+[data-template="airbnb-warmth"] [class*="note"]:hover {
+    box-shadow: var(--tpl-shadow-hover) !important;
+    transform: translateY(-3px) !important;
+}
+
+[data-template="airbnb-warmth"] [class*="note"] [class*="from"] {
+    font-weight: 600 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="airbnb-warmth"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.55 !important;
+    color: #6a6a6a !important;
+}
+
+[data-template="airbnb-warmth"] [class*="openHint"] {
+    border: none !important;
+    background: #fff0f3 !important;
+    color: var(--tpl-coral) !important;
+    border-radius: 14px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+}
+
+[data-template="airbnb-warmth"] [class*="fab"] {
+    border-radius: 8px !important;
+    background: var(--tpl-near-black) !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 500 !important;
+    font-size: 0.94rem !important;
+    color: #ffffff !important;
+    text-transform: none !important;
+}
+
+[data-template="airbnb-warmth"] [class*="fab"]:hover {
+    background: var(--tpl-coral) !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-template="airbnb-warmth"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    text-transform: none !important;
+}
+
+[data-template="airbnb-warmth"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: 1px solid #c1c1c1 !important;
+    border-radius: 8px !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="airbnb-warmth"] [class*="nicknameControls"] button {
+    border-radius: 8px !important;
+    background: var(--tpl-coral) !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    border: none !important;
+}
+
+[data-template="airbnb-warmth"] [class*="emptyState"] {
+    color: #6a6a6a !important;
+    font-family: var(--tpl-font-body) !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   7. CLAUDE EDITORIAL  ·  Inspired by Claude (Anthropic)
+   "Literary salon" — parchment canvas, terracotta accent,
+   serif headlines, warm neutrals, ring-based shadows.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="claude-editorial"] {
+    --tpl-radius-sm: 8px;
+    --tpl-radius-md: 12px;
+    --tpl-radius-lg: 16px;
+    --tpl-shadow-card: rgba(0,0,0,0.05) 0px 4px 24px;
+    --tpl-shadow-ring: 0px 0px 0px 1px rgba(0,0,0,0.06);
+    --tpl-font-display: 'Gowun Batang', Georgia, 'Noto Serif KR', serif;
+    --tpl-font-body: 'Pretendard', -apple-system, system-ui, sans-serif;
+    --tpl-parchment: #f5f4ed;
+    --tpl-ivory: #faf9f5;
+    --tpl-terracotta: #c96442;
+    --tpl-near-black: #141413;
+    --tpl-olive-gray: #5e5d59;
+    --tpl-stone-gray: #87867f;
+    --tpl-border-cream: #f0eee6;
+}
+
+[data-template="claude-editorial"] [class*="board"] {
+    background-color: var(--bg-secondary, #f5f4ed) !important;
+    background-image: none !important;
+}
+
+[data-template="claude-editorial"] [class*="home"] {
+    background-color: var(--bg-primary, #f5f4ed) !important;
+}
+
+[data-template="claude-editorial"] [class*="GlassCard"],
+[data-template="claude-editorial"] [class*="glassCard"],
+[data-template="claude-editorial"] [class*="nicknameForm"] {
+    background: var(--tpl-ivory) !important;
+    border: 1px solid var(--tpl-border-cream) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--tpl-shadow-ring) !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="claude-editorial"] [class*="posterCard"] {
+    border-radius: 16px !important;
+    border: 1px solid var(--tpl-border-cream) !important;
+    box-shadow: var(--tpl-shadow-card) !important;
+}
+
+[data-template="claude-editorial"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+    line-height: 1.10 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="claude-editorial"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+    color: var(--tpl-olive-gray) !important;
+    line-height: 1.6 !important;
+}
+
+[data-template="claude-editorial"] [class*="note"] {
+    border-radius: 12px !important;
+    border: 1px solid var(--tpl-border-cream) !important;
+    box-shadow: var(--tpl-shadow-ring) !important;
+    font-family: var(--tpl-font-body) !important;
+    transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+[data-template="claude-editorial"] [class*="note"]:hover {
+    box-shadow: var(--tpl-shadow-card) !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-template="claude-editorial"] [class*="note"] [class*="from"] {
+    font-weight: 500 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="claude-editorial"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.60 !important;
+    color: var(--tpl-olive-gray) !important;
+}
+
+[data-template="claude-editorial"] [class*="openHint"] {
+    border: none !important;
+    background: #e8e6dc !important;
+    color: #4d4c48 !important;
+    border-radius: 8px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+}
+
+[data-template="claude-editorial"] [class*="fab"] {
+    border-radius: 8px !important;
+    background: var(--tpl-terracotta) !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-ring) !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 500 !important;
+    font-size: 0.94rem !important;
+    color: var(--tpl-ivory) !important;
+    text-transform: none !important;
+}
+
+[data-template="claude-editorial"] [class*="fab"]:hover {
+    background: #d97757 !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-template="claude-editorial"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}
+
+[data-template="claude-editorial"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: 1px solid var(--tpl-border-cream) !important;
+    border-radius: 12px !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="claude-editorial"] [class*="nicknameControls"] input:focus {
+    border-color: var(--tpl-terracotta) !important;
+    box-shadow: 0 0 0 2px rgba(201,100,66,0.12) !important;
+}
+
+[data-template="claude-editorial"] [class*="nicknameControls"] button {
+    border-radius: 8px !important;
+    background: var(--tpl-terracotta) !important;
+    color: var(--tpl-ivory) !important;
+    font-weight: 500 !important;
+    border: none !important;
+}
+
+[data-template="claude-editorial"] [class*="emptyState"] {
+    color: var(--tpl-stone-gray) !important;
+    font-family: var(--tpl-font-display) !important;
+    font-style: italic !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   8. MISTRAL GOLDEN  ·  Inspired by Mistral AI
+   "Golden hour" — warm ivory canvas, amber/orange gradient,
+   sharp corners, single-weight typography, golden shadows.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="mistral-golden"] {
+    --tpl-radius-sm: 0px;
+    --tpl-radius-md: 0px;
+    --tpl-radius-lg: 0px;
+    --tpl-shadow-golden: rgba(127,99,21,0.12) -8px 16px 39px, rgba(127,99,21,0.06) 0px 4px 12px;
+    --tpl-font-display: 'Pretendard', Arial, sans-serif;
+    --tpl-font-body: 'Pretendard', Arial, sans-serif;
+    --tpl-orange: #fa520f;
+    --tpl-amber: #ffa110;
+    --tpl-ivory: #fffaeb;
+    --tpl-cream: #fff0c2;
+    --tpl-near-black: #1f1f1f;
+}
+
+[data-template="mistral-golden"] [class*="board"] {
+    background-color: var(--bg-secondary, #fffaeb) !important;
+    background-image: none !important;
+}
+
+[data-template="mistral-golden"] [class*="home"] {
+    background-color: var(--bg-primary, #fffaeb) !important;
+}
+
+[data-template="mistral-golden"] [class*="GlassCard"],
+[data-template="mistral-golden"] [class*="glassCard"],
+[data-template="mistral-golden"] [class*="nicknameForm"] {
+    background: var(--tpl-cream) !important;
+    border: none !important;
+    border-radius: 0px !important;
+    box-shadow: var(--tpl-shadow-golden) !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="mistral-golden"] [class*="posterCard"] {
+    border-radius: 0px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-golden) !important;
+}
+
+[data-template="mistral-golden"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.0 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="mistral-golden"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+    color: var(--tpl-near-black) !important;
+    opacity: 0.7;
+}
+
+[data-template="mistral-golden"] [class*="note"] {
+    border-radius: 0px !important;
+    border: none !important;
+    box-shadow: var(--tpl-shadow-golden) !important;
+    font-family: var(--tpl-font-body) !important;
+    transition: box-shadow 0.3s ease, transform 0.2s ease !important;
+}
+
+/* Golden accent top-line */
+[data-template="mistral-golden"] [class*="note"]::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 3px !important;
+    background: linear-gradient(90deg, #ffd900, #ffa110, #fa520f) !important;
+    z-index: 10 !important;
+}
+
+[data-template="mistral-golden"] [class*="note"]:hover {
+    box-shadow: rgba(127,99,21,0.18) -8px 16px 39px, rgba(127,99,21,0.1) 0px 8px 24px !important;
+    transform: translateY(-2px) !important;
+}
+
+[data-template="mistral-golden"] [class*="note"] [class*="from"] {
+    font-weight: 400 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-size: 0.75rem !important;
+    color: var(--tpl-orange) !important;
+}
+
+[data-template="mistral-golden"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.55 !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="mistral-golden"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-cream) !important;
+    color: var(--tpl-near-black) !important;
+    border-radius: 0px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 400 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+}
+
+[data-template="mistral-golden"] [class*="fab"] {
+    border-radius: 0px !important;
+    background: var(--tpl-near-black) !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 0.94rem !important;
+    color: #ffffff !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+[data-template="mistral-golden"] [class*="fab"]:hover {
+    background: var(--tpl-orange) !important;
+    transform: none !important;
+}
+
+[data-template="mistral-golden"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+    text-transform: none !important;
+}
+
+[data-template="mistral-golden"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: 1px solid rgba(31,31,31,0.15) !important;
+    border-radius: 0px !important;
+    color: var(--tpl-near-black) !important;
+}
+
+[data-template="mistral-golden"] [class*="nicknameControls"] button {
+    border-radius: 0px !important;
+    background: var(--tpl-near-black) !important;
+    color: #ffffff !important;
+    font-weight: 400 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border: none !important;
+}
+
+[data-template="mistral-golden"] [class*="emptyState"] {
+    color: rgba(31,31,31,0.5) !important;
+    font-family: var(--tpl-font-body) !important;
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   9. OLLAMA MONO  ·  Inspired by Ollama
+   "Radical minimalism" — pure white void, zero shadow, zero color,
+   pill geometry on interactives, 12px on containers, grayscale only.
+   ───────────────────────────────────────────────────────────── */
+
+[data-template="ollama-mono"] {
+    --tpl-radius-sm: 9999px;
+    --tpl-radius-md: 12px;
+    --tpl-radius-lg: 12px;
+    --tpl-font-display: 'Pretendard', system-ui, -apple-system, sans-serif;
+    --tpl-font-body: 'Pretendard', system-ui, -apple-system, sans-serif;
+    --tpl-light-gray: #e5e5e5;
+    --tpl-stone: #737373;
+    --tpl-snow: #fafafa;
+}
+
+[data-template="ollama-mono"] [class*="board"],
+[data-template="ollama-mono"] [class*="home"] {
+    background-color: var(--bg-primary, #ffffff) !important;
+    background-image: none !important;
+}
+
+[data-template="ollama-mono"] [class*="GlassCard"],
+[data-template="ollama-mono"] [class*="glassCard"],
+[data-template="ollama-mono"] [class*="nicknameForm"] {
+    background: #ffffff !important;
+    border: 1px solid var(--tpl-light-gray) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+[data-template="ollama-mono"] [class*="posterCard"] {
+    border-radius: 12px !important;
+    border: 1px solid var(--tpl-light-gray) !important;
+    box-shadow: none !important;
+}
+
+[data-template="ollama-mono"] [class*="boardHeader"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+    line-height: 1.0 !important;
+    color: #000000 !important;
+}
+
+[data-template="ollama-mono"] [class*="boardHeader"] p {
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 400 !important;
+    font-size: 1rem !important;
+    color: var(--tpl-stone) !important;
+}
+
+[data-template="ollama-mono"] [class*="note"] {
+    border-radius: 12px !important;
+    border: 1px solid var(--tpl-light-gray) !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    transition: border-color 0.15s ease !important;
+}
+
+[data-template="ollama-mono"] [class*="note"]:hover {
+    border-color: #a3a3a3 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+[data-template="ollama-mono"] [class*="note"] [class*="from"] {
+    font-weight: 500 !important;
+    color: #000000 !important;
+}
+
+[data-template="ollama-mono"] [class*="note"] [class*="content"] {
+    font-family: var(--tpl-font-body) !important;
+    line-height: 1.50 !important;
+    color: #525252 !important;
+}
+
+[data-template="ollama-mono"] [class*="openHint"] {
+    border: none !important;
+    background: var(--tpl-light-gray) !important;
+    color: #262626 !important;
+    border-radius: 9999px !important;
+    font-family: var(--tpl-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 400 !important;
+}
+
+[data-template="ollama-mono"] [class*="fab"] {
+    border-radius: 9999px !important;
+    background: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: var(--tpl-font-body) !important;
+    font-weight: 500 !important;
+    font-size: 0.94rem !important;
+    color: #ffffff !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+[data-template="ollama-mono"] [class*="fab"]:hover {
+    background: #262626 !important;
+    transform: none !important;
+}
+
+[data-template="ollama-mono"] h2 {
+    font-family: var(--tpl-font-display) !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}
+
+[data-template="ollama-mono"] [class*="nicknameControls"] input {
+    background: #ffffff !important;
+    border: 1px solid var(--tpl-light-gray) !important;
+    border-radius: 9999px !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+}
+
+[data-template="ollama-mono"] [class*="nicknameControls"] button {
+    border-radius: 9999px !important;
+    background: var(--tpl-light-gray) !important;
+    color: #262626 !important;
+    font-weight: 500 !important;
+    border: 1px solid var(--tpl-light-gray) !important;
+}
+
+[data-template="ollama-mono"] [class*="emptyState"] {
+    color: var(--tpl-stone) !important;
+    font-family: var(--tpl-font-body) !important;
+}

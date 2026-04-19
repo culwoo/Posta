@@ -82,8 +82,11 @@ export const EventProvider = ({ children }) => {
     // Theme injection: update CSS variables based on event theme synchronously before paint
     useLayoutEffect(() => {
         const setCSSVariables = (themeData) => {
-            if (!themeData) return;
             const root = document.documentElement;
+            if (!themeData) {
+                root.removeAttribute('data-template');
+                return;
+            }
             if (themeData.primary) root.style.setProperty('--primary-color', themeData.primary);
             if (themeData.secondary) root.style.setProperty('--secondary-color', themeData.secondary);
             if (themeData.bgPrimary) root.style.setProperty('--bg-primary', themeData.bgPrimary);
@@ -96,17 +99,35 @@ export const EventProvider = ({ children }) => {
             if (themeData.accent) root.style.setProperty('--accent-color', themeData.accent);
             root.style.setProperty('--font-main', themeData.fontMain || PRETENDARD_STACK);
             root.style.setProperty('--font-note', themeData.fontNote || themeData.fontMain || PRETENDARD_STACK);
+
+            // notePalette CSS 변수 주입 (게시판 쪽지 색상용)
+            if (Array.isArray(themeData.notePalette)) {
+                themeData.notePalette.forEach((color, i) => {
+                    if (color) root.style.setProperty('--note-palette-' + (i + 1), color);
+                });
+            }
+
+            // 디자인 템플릿 속성 적용 (CSS 오버라이드용)
+            if (themeData.templateId && themeData.templateId !== 'custom') {
+                root.setAttribute('data-template', themeData.templateId);
+            } else {
+                root.removeAttribute('data-template');
+            }
         };
 
         // 1. Storage-based instant preview (for FOUC prevention in editor)
         try {
             const previewTheme = sessionStorage.getItem(`preview_theme_${eventId}`);
             if (previewTheme) setCSSVariables(JSON.parse(previewTheme));
-        } catch (e) { }
+        } catch {
+            sessionStorage.removeItem(`preview_theme_${eventId}`);
+        }
 
         // 2. Firestore-based applied theme
         if (eventData?.theme) {
             setCSSVariables(eventData.theme);
+        } else {
+            setCSSVariables(null);
         }
 
         // 3. Live preview message listener from editor

@@ -5,9 +5,7 @@
  * 사용법: node set-cors.js
  */
 
-const { exec } = require('child_process');
 const https = require('https');
-const http = require('http');
 
 const BUCKET = 'melodic-e7c2a.firebasestorage.app';
 const CORS_CONFIG = [
@@ -18,37 +16,6 @@ const CORS_CONFIG = [
         responseHeader: ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
     }
 ];
-
-async function getAccessToken() {
-    return new Promise((resolve, reject) => {
-        exec('npx firebase-tools login:ci --no-localhost 2>&1', { timeout: 5000 }, () => { });
-        // Use firebase-tools to get the access token
-        exec('node -e "require(\'firebase-tools\').login.use().then(t => console.log(t)).catch(() => process.exit(1))"',
-            { timeout: 10000 }, (err) => {
-                if (err) {
-                    // Fallback: try to read the token from firebase config
-                    const os = require('os');
-                    const path = require('path');
-                    const fs = require('fs');
-
-                    const configDir = process.env.FIREBASE_CONFIG_DIR || path.join(os.homedir(), '.config', 'configstore');
-                    const tokenFile = path.join(configDir, 'firebase-tools.json');
-
-                    try {
-                        const config = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-                        const token = config.tokens?.access_token;
-                        if (token) {
-                            resolve(token);
-                            return;
-                        }
-                    } catch (e) { }
-
-                    reject(new Error('Could not get access token'));
-                }
-            }
-        );
-    });
-}
 
 async function getAccessTokenViaRefresh() {
     const os = require('os');
@@ -68,7 +35,9 @@ async function getAccessTokenViaRefresh() {
             config = JSON.parse(fs.readFileSync(p, 'utf8'));
             console.log('Found firebase config at:', p);
             break;
-        } catch (e) { }
+        } catch {
+            continue;
+        }
     }
 
     if (!config?.tokens?.refresh_token) {

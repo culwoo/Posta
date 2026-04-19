@@ -98,82 +98,82 @@ const EventList = () => {
                         </p>
                     </GlassCard>
                 ) : (
-                    events.map(event => (
-                        <Link
-                            to={`event/${event.id}`}
-                            key={event.id}
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                        >
-                            <GlassCard
-                                level={1}
-                                hover
-                                style={{ padding: '1.5rem', cursor: 'pointer', height: '100%' }}
+                    events.map(event => {
+                        const isPlus = event.billing?.tier === 'plus';
+                        return (
+                            <Link
+                                to={`event/${event.id}`}
+                                key={event.id}
+                                style={{ textDecoration: 'none', color: 'inherit' }}
                             >
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'flex-start',
-                                    marginBottom: '0.5rem',
-                                    gap: '0.5rem',
-                                }}>
-                                    <h3 style={{
-                                        margin: 0,
-                                        color: 'var(--text-primary)',
-                                        fontSize: '1.1rem',
-                                        fontWeight: 600,
-                                        letterSpacing: '-0.02em',
-                                        fontFamily: 'var(--font-main)',
-                                        lineHeight: 1.3,
+                                <GlassCard
+                                    level={1}
+                                    hover
+                                    style={{ padding: '1.5rem', cursor: 'pointer', height: '100%' }}
+                                >
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'flex-start',
+                                        marginBottom: '0.5rem',
+                                        gap: '0.5rem',
                                     }}>
-                                        {event.title || '제목 없음'}
-                                    </h3>
-                                    <span style={{
-                                        fontSize: '0.72rem',
-                                        padding: '3px 8px',
-                                        borderRadius: '6px',
-                                        color: event.userRole === 'organizer' ? 'var(--text-on-primary)' : 'var(--text-secondary)',
-                                        fontWeight: 600,
+                                        <h3 style={{
+                                            margin: 0,
+                                            color: 'var(--text-primary)',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 600,
+                                            letterSpacing: '-0.02em',
+                                            fontFamily: 'var(--font-main)',
+                                            lineHeight: 1.3,
+                                        }}>
+                                            {event.title || '제목 없음'}
+                                        </h3>
+                                        {isPlus && (
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                padding: '3px 8px',
+                                                borderRadius: '999px',
+                                                color: '#fff',
+                                                fontWeight: 700,
+                                                fontFamily: 'var(--font-main)',
+                                                whiteSpace: 'nowrap',
+                                                flexShrink: 0,
+                                                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                                                boxShadow: '0 2px 8px rgba(139,92,246,0.28)',
+                                            }}>
+                                                Plus
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <p style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        margin: '0.5rem 0 0 0',
+                                        fontSize: '0.9rem',
+                                        color: 'var(--text-secondary)',
                                         fontFamily: 'var(--font-main)',
-                                        whiteSpace: 'nowrap',
-                                        flexShrink: 0,
-                                        background: event.userRole === 'organizer'
-                                            ? 'linear-gradient(135deg, var(--primary-color), rgba(246,196,88,0.8))'
-                                            : 'var(--ui-surface-soft)',
-                                        border: event.userRole === 'organizer'
-                                            ? 'none'
-                                            : '1px solid var(--ui-border-soft)',
-                                        backdropFilter: event.userRole !== 'organizer' ? 'blur(4px)' : 'none',
                                     }}>
-                                        {event.userRole === 'organizer' ? '관리자' : (event.userRole === 'performer' ? '공연진' : '참여자')}
-                                    </span>
-                                </div>
+                                        <Calendar size={13} />
+                                        {formatDate(event.date)}
+                                    </p>
 
-                                <p style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    margin: '0.5rem 0 0 0',
-                                    fontSize: '0.9rem',
-                                    color: 'var(--text-secondary)',
-                                    fontFamily: 'var(--font-main)',
-                                }}>
-                                    <Calendar size={13} />
-                                    {formatDate(event.date)}
-                                </p>
-
-                                <p style={{
-                                    margin: '0.75rem 0 0 0',
-                                    fontSize: '0.85rem',
-                                    color: 'var(--accent-color)',
-                                    wordBreak: 'break-all',
-                                    fontWeight: 500,
-                                    fontFamily: 'var(--font-main)',
-                                }}>
-                                    🌐 posta.systems/e/{event.id}
-                                </p>
-                            </GlassCard>
-                        </Link>
-                    ))
+                                    <p style={{
+                                        margin: '0.75rem 0 0 0',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--accent-color)',
+                                        wordBreak: 'break-all',
+                                        fontWeight: 500,
+                                        fontFamily: 'var(--font-main)',
+                                    }}>
+                                        🌐 posta.systems/e/{event.id}
+                                    </p>
+                                </GlassCard>
+                            </Link>
+                        );
+                    })
                 )}
             </div>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const GlassToast = ({ message, isVisible, onClose, type = 'success' }) => {
+const GlassToast = ({ message, isVisible, type = 'success' }) => {
   return (
     <AnimatePresence>
       {isVisible && (
