@@ -7,7 +7,7 @@ import GlassButton from '../ui/GlassButton';
 import { getTierLabel, getTierColor, TIER_PRICES } from '../../utils/permissions';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEvent } from '../../contexts/EventContext';
-import { openCheckout } from '../../utils/checkout';
+import { openCheckout, prepareCheckout } from '../../utils/checkout';
 
 /**
  * Blur overlay shown when a user doesn't have access to a feature.
@@ -39,6 +39,11 @@ export function PaywallOverlay({ requiredTier, price }) {
       setIsCheckoutLoading(false);
     }
   }, [eventId, isCheckoutLoading]);
+
+  const handlePrepareCheckout = React.useCallback(() => {
+    if (!eventId) return;
+    void prepareCheckout(eventId).catch(() => {});
+  }, [eventId]);
 
   return (
     <div style={{
@@ -108,6 +113,9 @@ export function PaywallOverlay({ requiredTier, price }) {
               <GlassButton
                 variant="primary"
                 size="lg"
+                onMouseEnter={handlePrepareCheckout}
+                onFocus={handlePrepareCheckout}
+                onTouchStart={handlePrepareCheckout}
                 onClick={handleCheckoutClick}
                 disabled={isCheckoutLoading}
                 style={{ width: '100%', marginBottom: '0.75rem' }}

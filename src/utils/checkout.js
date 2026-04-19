@@ -1,5 +1,10 @@
 import { db, doc, onSnapshot, functions, httpsCallable } from '../api/firebase';
 
+const CHECKOUT_URL_TTL_MS = 5 * 60 * 1000;
+const checkoutUrlCache = new Map();
+const preconnectedOrigins = new Set();
+const createCheckout = httpsCallable(functions, 'createLemonSqueezyCheckout');
+
 /**
  * 모바일 기기 여부 판별.
  * Lemon Squeezy checkout이 모바일 iframe 안에서 404를 반환하므로,
@@ -8,6 +13,12 @@ import { db, doc, onSnapshot, functions, httpsCallable } from '../api/firebase';
 function isMobile() {
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     || (navigator.maxTouchPoints > 0 && window.innerWidth <= 768);
+}
+
+export function prepareCheckout(eventId) {
+  if (!eventId) return Promise.resolve(null);
+  preconnectKnownCheckoutOrigins();
+  return getCheckoutUrl(eventId);
 }
 
 /**
@@ -24,25 +35,27 @@ function isMobile() {
  */
 export async function openCheckout(eventId) {
   const mobile = isMobile();
+
+  const preparedUrl = readCachedCheckoutUrl(eventId);
+  if (preparedUrl) {
+    if (mobile) {
+      openCheckoutNewTab(preparedUrl, eventId);
+    } else {
+      showCheckoutModal(preparedUrl, eventId);
+    }
+    return;
+  }
+
   const pendingTab = mobile ? openPendingCheckoutTab() : null;
   const pendingModal = mobile ? null : showCheckoutPendingModal(eventId);
-
-  const createCheckout = httpsCallable(functions, 'createLemonSqueezyCheckout');
   let checkoutUrl = '';
 
   try {
-    const response = await createCheckout({ eventId });
-    checkoutUrl = String(response.data?.url || '').trim();
+    checkoutUrl = await getCheckoutUrl(eventId);
   } catch (error) {
     pendingModal?.remove();
     if (pendingTab && !pendingTab.closed) pendingTab.close();
     throw error;
-  }
-
-  if (!checkoutUrl.startsWith('https://')) {
-    pendingModal?.remove();
-    if (pendingTab && !pendingTab.closed) pendingTab.close();
-    throw new Error('유효한 결제 링크를 받지 못했습니다.');
   }
 
   if (mobile) {
@@ -52,6 +65,98 @@ export async function openCheckout(eventId) {
     pendingModal?.remove();
     showCheckoutModal(checkoutUrl, eventId);
   }
+}
+
+function getCheckoutUrl(eventId) {
+  if (!eventId) {
+    return Promise.reject(new Error('결제할 공연을 찾지 못했습니다.'));
+  }
+
+  preconnectKnownCheckoutOrigins();
+
+  const cachedUrl = readCachedCheckoutUrl(eventId);
+  if (cachedUrl) return Promise.resolve(cachedUrl);
+
+  const cachedEntry = checkoutUrlCache.get(eventId);
+  if (cachedEntry?.promise) return cachedEntry.promise;
+
+  const request = Promise.resolve()
+    .then(() => createCheckout({ eventId }))
+    .then((response) => {
+      const checkoutUrl = String(response.data?.url || '').trim();
+      if (!checkoutUrl.startsWith('https://')) {
+        throw new Error('유효한 결제 링크를 받지 못했습니다.');
+      }
+      rememberCheckoutUrl(eventId, checkoutUrl);
+      preconnectCheckoutUrl(checkoutUrl);
+      return checkoutUrl;
+    })
+    .catch((error) => {
+      const currentEntry = checkoutUrlCache.get(eventId);
+      if (currentEntry?.promise === request) {
+        checkoutUrlCache.delete(eventId);
+      }
+      throw error;
+    });
+
+  checkoutUrlCache.set(eventId, {
+    promise: request,
+    expiresAt: Date.now() + CHECKOUT_URL_TTL_MS,
+  });
+
+  return request;
+}
+
+function readCachedCheckoutUrl(eventId) {
+  if (!eventId) return null;
+
+  const cachedEntry = checkoutUrlCache.get(eventId);
+  if (!cachedEntry) return null;
+
+  if (cachedEntry.expiresAt <= Date.now()) {
+    checkoutUrlCache.delete(eventId);
+    return null;
+  }
+
+  return cachedEntry.url || null;
+}
+
+function rememberCheckoutUrl(eventId, checkoutUrl) {
+  checkoutUrlCache.set(eventId, {
+    url: checkoutUrl,
+    expiresAt: Date.now() + CHECKOUT_URL_TTL_MS,
+  });
+}
+
+function preconnectKnownCheckoutOrigins() {
+  preconnectOrigins([
+    'https://app.lemonsqueezy.com',
+    'https://js.stripe.com',
+    'https://api.stripe.com',
+  ]);
+}
+
+function preconnectCheckoutUrl(checkoutUrl) {
+  try {
+    preconnectOrigins([new URL(checkoutUrl).origin]);
+  } catch {
+    // Invalid URLs are rejected by getCheckoutUrl; this is only a defensive guard.
+  }
+}
+
+function preconnectOrigins(origins) {
+  if (typeof document === 'undefined') return;
+
+  origins.forEach((origin) => {
+    if (preconnectedOrigins.has(origin)) return;
+    preconnectedOrigins.add(origin);
+
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  });
 }
 
 /**

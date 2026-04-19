@@ -8,7 +8,7 @@ import { db, doc, onSnapshot } from '../../api/firebase';
 import { TIER_PRICES, getTierColor } from '../../utils/permissions';
 import { useAuth } from '../../contexts/AuthContext';
 import { getManagedEvents } from '../../utils/dashboardData';
-import { openCheckout } from '../../utils/checkout';
+import { openCheckout, prepareCheckout } from '../../utils/checkout';
 
 /* ─────────────────────────── Data ─────────────────────────── */
 
@@ -124,6 +124,11 @@ const PremiumDashboard = () => {
       setCheckoutLoadingId(null);
     }
   }, [checkoutLoadingId]);
+
+  const handlePrepareCheckout = React.useCallback((eventId) => {
+    if (!eventId) return;
+    void prepareCheckout(eventId).catch(() => {});
+  }, []);
 
   const freeEvents = events.filter(e => (e.billing?.tier || 'free') !== 'plus');
   const plusEvents = events.filter(e => (e.billing?.tier || 'free') === 'plus');
@@ -436,6 +441,9 @@ const PremiumDashboard = () => {
                     </div>
                   ) : (
                     <button
+                      onMouseEnter={() => handlePrepareCheckout(ev.id)}
+                      onFocus={() => handlePrepareCheckout(ev.id)}
+                      onTouchStart={() => handlePrepareCheckout(ev.id)}
                       onClick={() => handleCheckout(ev.id)}
                       disabled={!!checkoutLoadingId}
                       style={{

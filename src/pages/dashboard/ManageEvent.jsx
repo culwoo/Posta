@@ -40,7 +40,7 @@ import DesignTemplateSelector from './DesignTemplateSelector';
 import DateFieldWithPicker from '../../components/DateFieldWithPicker';
 import TimeFieldWithPicker from '../../components/TimeFieldWithPicker';
 import { ensureContrast } from '../../utils/color';
-import { openCheckout } from '../../utils/checkout';
+import { openCheckout, prepareCheckout } from '../../utils/checkout';
 
 const DEFAULT_THEME = {
     primary: '#d05c80',
@@ -499,6 +499,11 @@ const ManageEvent = () => {
         }
     }, [eventId, isCheckoutLoading]);
 
+    const handlePreparePlusCheckout = useCallback(() => {
+        if (!eventId || billingTier === 'plus') return;
+        void prepareCheckout(eventId).catch(() => {});
+    }, [billingTier, eventId]);
+
     const handleTemplatePresetSelect = useCallback((preset) => {
         setTemplateId(preset.id);
         setNotePalette(preset.notePalette);
@@ -920,6 +925,9 @@ const ManageEvent = () => {
                         </div>
                     </div>
                     <button
+                        onMouseEnter={handlePreparePlusCheckout}
+                        onFocus={handlePreparePlusCheckout}
+                        onTouchStart={handlePreparePlusCheckout}
                         onClick={handlePlusCheckout}
                         disabled={isCheckoutLoading}
                         style={{
@@ -1058,6 +1066,7 @@ const ManageEvent = () => {
                             defaultTheme={DEFAULT_THEME}
                             isCheckoutLoading={isCheckoutLoading}
                             onPlusCheckout={handlePlusCheckout}
+                            onPreparePlusCheckout={handlePreparePlusCheckout}
                             onSelectPreset={handleTemplatePresetSelect}
                         />
                         <h3 style={{ margin: '1rem 0 0 0' }}>기본 정보</h3>

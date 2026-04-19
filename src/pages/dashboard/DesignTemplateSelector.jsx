@@ -121,6 +121,7 @@ const DesignTemplateSelector = ({
     defaultTheme,
     isCheckoutLoading,
     onPlusCheckout,
+    onPreparePlusCheckout,
     onSelectPreset,
 }) => {
     const carouselRef = useRef(null);
@@ -168,6 +169,9 @@ const DesignTemplateSelector = ({
                     </p>
                     <button
                         type="button"
+                        onMouseEnter={onPreparePlusCheckout}
+                        onFocus={onPreparePlusCheckout}
+                        onTouchStart={onPreparePlusCheckout}
                         onClick={onPlusCheckout}
                         disabled={isCheckoutLoading}
                         style={{ ...checkoutButtonStyle, cursor: isCheckoutLoading ? 'wait' : 'pointer' }}
