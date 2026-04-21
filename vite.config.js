@@ -11,7 +11,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('firebase')) return 'firebase';
-          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
           if (id.includes('framer-motion')) return 'motion';
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('recharts') || id.includes('d3-')) return 'charts';
@@ -26,7 +25,7 @@ export default defineConfig({
             id.includes('readable-stream') ||
             id.includes('archiver')
           ) return 'excel';
-          return 'vendor';
+          return undefined;
         },
       },
     },
