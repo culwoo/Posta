@@ -1,31 +1,42 @@
 import React, { useState, useRef } from 'react';
-import { read, utils, write } from 'xlsx';
 import { db, auth, collection, doc, writeBatch } from '../../../api/firebase';
 import classes from '../Admin.module.css';
 
 const TEMPLATE_HEADERS = ['이름*', '연락처*', '이메일(선택)', '수량*'];
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 1000;
+
+const loadExcelJS = async () => {
+    const module = await import('exceljs');
+    return module.default;
+};
 
 const isValidHeaders = (hdrs) =>
     hdrs.length >= TEMPLATE_HEADERS.length &&
     TEMPLATE_HEADERS.every((h, i) => h === hdrs[i]);
 
-const downloadTemplate = () => {
-    const wb = utils.book_new();
-    const ws = utils.aoa_to_sheet([
-        ['아래 헤더를 수정하지 마세요! 이 행은 자동으로 무시됩니다.'],
-        TEMPLATE_HEADERS,
-    ]);
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
-    ws['!cols'] = [{ wch: 16 }, { wch: 16, z: '@' }, { wch: 24 }, { wch: 10 }, { wch: 4 }, { wch: 4 }];
-    ws['!rows'] = [{ hpt: 28 }];
+const downloadTemplate = async () => {
+    const ExcelJS = await loadExcelJS();
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('예약 양식');
+
+    worksheet.addRow(['아래 헤더를 수정하지 마세요! 이 행은 자동으로 무시됩니다.']);
+    worksheet.addRow(TEMPLATE_HEADERS);
+    worksheet.mergeCells(1, 1, 1, 6);
+    worksheet.getRow(1).height = 28;
+    worksheet.getColumn(1).width = 16;
+    worksheet.getColumn(2).width = 16;
+    worksheet.getColumn(2).numFmt = '@';
+    worksheet.getColumn(3).width = 24;
+    worksheet.getColumn(4).width = 10;
+
     // 연락처 열(B) 데이터 영역을 텍스트 서식(@)으로 설정하여 앞자리 0 보존
-    for (let r = 2; r <= 501; r++) {
-        const ref = utils.encode_cell({ r, c: 1 });
-        ws[ref] = { t: 's', v: '', z: '@' };
+    for (let row = 3; row <= 502; row++) {
+        worksheet.getCell(row, 2).numFmt = '@';
     }
-    utils.book_append_sheet(wb, ws, '예약 양식');
-    const buf = write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -36,16 +47,89 @@ const downloadTemplate = () => {
     URL.revokeObjectURL(url);
 };
 
-const parseSheet = (sheet) => {
-    // Try row 1 as headers (no warning row)
-    let data = utils.sheet_to_json(sheet, { defval: '' });
-    if (data.length > 0 && isValidHeaders(Object.keys(data[0]))) return data;
+const normalizeCellValue = (value) => {
+    if (value == null) return '';
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') {
+        if (Array.isArray(value.richText)) {
+            return value.richText.map((part) => part.text || '').join('');
+        }
+        if ('text' in value) return value.text || '';
+        if ('result' in value) return value.result || '';
+    }
+    return value;
+};
 
-    // Try row 2 as headers (warning row exists)
-    data = utils.sheet_to_json(sheet, { defval: '', range: 1 });
-    if (data.length > 0 && isValidHeaders(Object.keys(data[0]))) return data;
+const rowsToObjects = (rows, headerIndex) => {
+    const headers = (rows[headerIndex] || []).map((cell) => String(cell || '').replace(/^\uFEFF/, '').trim());
+    if (!isValidHeaders(headers)) return null;
 
-    return null;
+    return rows.slice(headerIndex + 1)
+        .map((row) => TEMPLATE_HEADERS.reduce((acc, header, index) => {
+            acc[header] = row[index] ?? '';
+            return acc;
+        }, {}))
+        .filter((row) => TEMPLATE_HEADERS.some((header) => String(row[header] || '').trim() !== ''));
+};
+
+const parseRows = (rows) => {
+    // Try row 1 as headers (no warning row), then row 2 (template warning row).
+    return rowsToObjects(rows, 0) || rowsToObjects(rows, 1);
+};
+
+const parseCsvText = (text) => {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < text.length; index++) {
+        const char = text[index];
+
+        if (char === '"') {
+            if (inQuotes && text[index + 1] === '"') {
+                field += '"';
+                index++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            row.push(field);
+            field = '';
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+            if (char === '\r' && text[index + 1] === '\n') index++;
+            row.push(field);
+            if (row.some((cell) => String(cell).trim() !== '')) rows.push(row);
+            row = [];
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+
+    row.push(field);
+    if (row.some((cell) => String(cell).trim() !== '')) rows.push(row);
+
+    return parseRows(rows);
+};
+
+const parseXlsxBuffer = async (arrayBuffer) => {
+    const ExcelJS = await loadExcelJS();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) return null;
+
+    const rows = [];
+    worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+        const values = [];
+        for (let col = 1; col <= Math.max(row.cellCount, TEMPLATE_HEADERS.length); col++) {
+            values.push(normalizeCellValue(row.getCell(col).value));
+        }
+        rows[rowNumber - 1] = values;
+    });
+
+    return parseRows(rows.filter(Boolean));
 };
 
 const cleanName = (val) => String(val || '').replace(/\s+/g, ' ').trim();
@@ -66,18 +150,40 @@ const AdminBulkImport = ({ eventId }) => {
     const [error, setError] = useState('');
     const fileRef = useRef(null);
 
+    const handleDownloadTemplate = async () => {
+        setError('');
+        try {
+            await downloadTemplate();
+        } catch {
+            setError('양식을 다운로드할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        }
+    };
+
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         setError('');
 
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        if (!['xlsx', 'csv'].includes(extension)) {
+            setError('보안을 위해 .xlsx 또는 UTF-8 .csv 파일만 업로드할 수 있습니다.');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setError('파일은 5MB 이하만 업로드할 수 있습니다.');
+            e.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
-                const data = new Uint8Array(event.target.result);
-                const workbook = read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = parseSheet(firstSheet);
+                const arrayBuffer = event.target.result;
+                const jsonData = extension === 'csv'
+                    ? parseCsvText(new TextDecoder('utf-8').decode(arrayBuffer))
+                    : await parseXlsxBuffer(arrayBuffer);
 
                 if (!jsonData) {
                     setError('양식이 맞지 않습니다. 양식을 다운로드하여 헤더를 변경하지 말고 사용해주세요.');
@@ -89,12 +195,18 @@ const AdminBulkImport = ({ eventId }) => {
                     return;
                 }
 
+                if (jsonData.length > MAX_IMPORT_ROWS) {
+                    setError(`한 번에 최대 ${MAX_IMPORT_ROWS}건까지 가져올 수 있습니다.`);
+                    return;
+                }
+
                 setParsedData(jsonData);
                 setStep('preview');
             } catch {
-                setError('파일을 읽을 수 없습니다. 양식에 맞는 엑셀(.xlsx) 파일인지 확인해주세요.');
+                setError('파일을 읽을 수 없습니다. 양식에 맞는 .xlsx 또는 UTF-8 .csv 파일인지 확인해주세요.');
             }
         };
+        reader.onerror = () => setError('파일을 읽을 수 없습니다.');
         reader.readAsArrayBuffer(file);
     };
 
@@ -167,8 +279,8 @@ const AdminBulkImport = ({ eventId }) => {
 
             {step === 'idle' && (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display: 'none' }} />
-                    <button onClick={downloadTemplate} style={templateBtnStyle}>
+                    <input ref={fileRef} type="file" accept=".xlsx,.csv" onChange={handleFileChange} style={{ display: 'none' }} />
+                    <button onClick={handleDownloadTemplate} style={templateBtnStyle}>
                         양식 다운로드
                     </button>
                     <button onClick={() => fileRef.current?.click()} style={uploadBtnStyle}>

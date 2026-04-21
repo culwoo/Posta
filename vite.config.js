@@ -17,7 +17,15 @@ export default defineConfig({
           if (id.includes('recharts') || id.includes('d3-')) return 'charts';
           if (id.includes('@dnd-kit')) return 'dnd';
           if (id.includes('@zxing')) return 'scanner';
-          if (id.includes('xlsx')) return 'xlsx';
+          if (
+            id.includes('exceljs') ||
+            id.includes('jszip') ||
+            id.includes('saxes') ||
+            id.includes('fast-csv') ||
+            id.includes('unzipper') ||
+            id.includes('readable-stream') ||
+            id.includes('archiver')
+          ) return 'excel';
           return 'vendor';
         },
       },
