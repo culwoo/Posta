@@ -2,12 +2,26 @@ import { db, doc, functions, httpsCallable, onSnapshot } from '../api/firebase';
 
 const requestPlusBankTransfer = httpsCallable(functions, 'requestPlusBankTransfer');
 const PLUS_PRICE_KRW = 9900;
+const DEFAULT_PLUS_BANK_ACCOUNT = {
+  bankName: 'KB국민은행',
+  accountNumber: '94900200345598',
+  accountHolder: '곽철우',
+  contact: '2424water@gmail.com',
+};
+
+const sanitizeBankAccountValue = (value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (normalized.includes('\ufffd')) return '';
+  if (/\?{2,}/.test(normalized)) return '';
+  return normalized;
+};
 
 const bankAccount = {
-  bankName: import.meta.env.VITE_PLUS_BANK_NAME || '',
-  accountNumber: import.meta.env.VITE_PLUS_BANK_ACCOUNT || '',
-  accountHolder: import.meta.env.VITE_PLUS_BANK_HOLDER || '',
-  contact: import.meta.env.VITE_PLUS_BANK_CONTACT || '',
+  bankName: sanitizeBankAccountValue(import.meta.env.VITE_PLUS_BANK_NAME) || DEFAULT_PLUS_BANK_ACCOUNT.bankName,
+  accountNumber: sanitizeBankAccountValue(import.meta.env.VITE_PLUS_BANK_ACCOUNT) || DEFAULT_PLUS_BANK_ACCOUNT.accountNumber,
+  accountHolder: sanitizeBankAccountValue(import.meta.env.VITE_PLUS_BANK_HOLDER) || DEFAULT_PLUS_BANK_ACCOUNT.accountHolder,
+  contact: sanitizeBankAccountValue(import.meta.env.VITE_PLUS_BANK_CONTACT) || DEFAULT_PLUS_BANK_ACCOUNT.contact,
 };
 
 const formatWon = (value) => `${Number(value || 0).toLocaleString('ko-KR')}원`;
@@ -71,7 +85,7 @@ function showBankTransferModal(eventId) {
     boxShadow: '0 24px 80px rgba(0, 0, 0, 0.5)',
     background: '#ffffff',
     color: '#111827',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif",
   });
 
   const closeBtn = document.createElement('button');
