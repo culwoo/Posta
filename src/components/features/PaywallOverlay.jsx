@@ -25,7 +25,7 @@ export function PaywallOverlay({ requiredTier, price }) {
   const requiredColor = getTierColor(requiredTier);
 
   // 현재 로그인한 사용자가 이벤트 생성자인지 (주최자인지) 확인
-  const isOrganizer = Boolean(user?.uid && eventData?.createdBy === user.uid);
+  const isOrganizer = Boolean(user?.uid && (eventData?.ownerId === user.uid || eventData?.createdBy === user.uid));
 
   const handleCheckoutClick = React.useCallback(async () => {
     if (!eventId || isCheckoutLoading) return;
@@ -35,7 +35,7 @@ export function PaywallOverlay({ requiredTier, price }) {
       setTimeout(() => setIsCheckoutLoading(false), 3000);
     } catch (error) {
       console.error('Checkout initialization failed:', error);
-      alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      alert('입금 안내를 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
       setIsCheckoutLoading(false);
     }
   }, [eventId, isCheckoutLoading]);
@@ -120,7 +120,7 @@ export function PaywallOverlay({ requiredTier, price }) {
                 disabled={isCheckoutLoading}
                 style={{ width: '100%', marginBottom: '0.75rem' }}
               >
-                {isCheckoutLoading ? '결제 창 준비 중...' : 'Plus 기능 활성화하기'}
+                {isCheckoutLoading ? '준비 중...' : 'Plus 입금 신청하기'}
               </GlassButton>
               <GlassButton
                 variant="secondary"

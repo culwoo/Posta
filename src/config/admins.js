@@ -1,5 +1,7 @@
+export const PLATFORM_ADMIN_EMAIL = '4242fire@gmail.com';
+
 export const ADMIN_EMAILS = [
-    '4242fire@gmail.com',
+    PLATFORM_ADMIN_EMAIL,
     'sseeooyyuunn@naver.com',
     'mides3912@gmail.com'
 ];

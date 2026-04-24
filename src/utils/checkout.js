@@ -1,273 +1,93 @@
-import { db, doc, onSnapshot, functions, httpsCallable } from '../api/firebase';
+import { db, doc, functions, httpsCallable, onSnapshot } from '../api/firebase';
 
-const CHECKOUT_URL_TTL_MS = 5 * 60 * 1000;
-const checkoutUrlCache = new Map();
-const preconnectedOrigins = new Set();
-const createCheckout = httpsCallable(functions, 'createLemonSqueezyCheckout');
+const requestPlusBankTransfer = httpsCallable(functions, 'requestPlusBankTransfer');
+const PLUS_PRICE_KRW = 9900;
 
-/**
- * 모바일 기기 여부 판별.
- * Lemon Squeezy checkout이 모바일 iframe 안에서 404를 반환하므로,
- * 모바일에서는 새 탭으로 열어야 한다.
- */
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    || (navigator.maxTouchPoints > 0 && window.innerWidth <= 768);
-}
+const bankAccount = {
+  bankName: import.meta.env.VITE_PLUS_BANK_NAME || '',
+  accountNumber: import.meta.env.VITE_PLUS_BANK_ACCOUNT || '',
+  accountHolder: import.meta.env.VITE_PLUS_BANK_HOLDER || '',
+  contact: import.meta.env.VITE_PLUS_BANK_CONTACT || '',
+};
+
+const formatWon = (value) => `${Number(value || 0).toLocaleString('ko-KR')}원`;
+
+const getBankTransferErrorMessage = (error) => {
+  const code = String(error?.code || '').replace(/^functions\//, '');
+  if (code === 'unauthenticated') {
+    return '로그인 후 입금 신청을 진행해주세요.';
+  }
+  if (code === 'permission-denied') {
+    return '이 공연의 관리자만 입금 신청을 할 수 있습니다.';
+  }
+  if (code === 'not-found') {
+    return '입금 신청 기능이 아직 서버에 반영되지 않았습니다. 관리자에게 문의해주세요.';
+  }
+  if (code === 'invalid-argument') {
+    return '입금 신청 정보가 올바르지 않습니다. 입금자명을 확인해주세요.';
+  }
+  if (code === 'internal' || error?.message === 'internal') {
+    return '입금 신청을 저장하지 못했습니다. 잠시 후 다시 시도하거나 관리자에게 문의해주세요.';
+  }
+  return error?.message || '입금 신청을 접수하지 못했습니다. 잠시 후 다시 시도해주세요.';
+};
 
 export function prepareCheckout(eventId) {
-  if (!eventId) return Promise.resolve(null);
-  preconnectKnownCheckoutOrigins();
-  return getCheckoutUrl(eventId);
+  return Promise.resolve(eventId || null);
 }
 
-/**
- * Lemon Squeezy checkout 실행.
- *
- * - 데스크톱: 커스텀 모달 오버레이(iframe)
- * - 모바일: 새 탭으로 열기 (Lemon Squeezy가 모바일 iframe을 지원하지 않음)
- *
- * 두 경우 모두 Firestore 이벤트를 실시간 감시하여,
- * 웹훅이 결제를 처리하고 티어가 'plus'로 변경되면 성공 처리합니다.
- *
- * @param {string} eventId
- * @returns {Promise<void>}
- */
 export async function openCheckout(eventId) {
-  const mobile = isMobile();
-
-  const preparedUrl = readCachedCheckoutUrl(eventId);
-  if (preparedUrl) {
-    if (mobile) {
-      openCheckoutNewTab(preparedUrl, eventId);
-    } else {
-      showCheckoutModal(preparedUrl, eventId);
-    }
-    return;
-  }
-
-  const pendingTab = mobile ? openPendingCheckoutTab() : null;
-  const pendingModal = mobile ? null : showCheckoutPendingModal(eventId);
-  let checkoutUrl = '';
-
-  try {
-    checkoutUrl = await getCheckoutUrl(eventId);
-  } catch (error) {
-    pendingModal?.remove();
-    if (pendingTab && !pendingTab.closed) pendingTab.close();
-    throw error;
-  }
-
-  if (mobile) {
-    openCheckoutNewTab(checkoutUrl, eventId, pendingTab);
-  } else {
-    if (pendingModal?.isCancelled()) return;
-    pendingModal?.remove();
-    showCheckoutModal(checkoutUrl, eventId);
-  }
-}
-
-function getCheckoutUrl(eventId) {
   if (!eventId) {
-    return Promise.reject(new Error('결제할 공연을 찾지 못했습니다.'));
+    throw new Error('결제할 공연을 찾지 못했습니다.');
   }
-
-  preconnectKnownCheckoutOrigins();
-
-  const cachedUrl = readCachedCheckoutUrl(eventId);
-  if (cachedUrl) return Promise.resolve(cachedUrl);
-
-  const cachedEntry = checkoutUrlCache.get(eventId);
-  if (cachedEntry?.promise) return cachedEntry.promise;
-
-  const request = Promise.resolve()
-    .then(() => createCheckout({ eventId }))
-    .then((response) => {
-      const checkoutUrl = String(response.data?.url || '').trim();
-      if (!checkoutUrl.startsWith('https://')) {
-        throw new Error('유효한 결제 링크를 받지 못했습니다.');
-      }
-      rememberCheckoutUrl(eventId, checkoutUrl);
-      preconnectCheckoutUrl(checkoutUrl);
-      return checkoutUrl;
-    })
-    .catch((error) => {
-      const currentEntry = checkoutUrlCache.get(eventId);
-      if (currentEntry?.promise === request) {
-        checkoutUrlCache.delete(eventId);
-      }
-      throw error;
-    });
-
-  checkoutUrlCache.set(eventId, {
-    promise: request,
-    expiresAt: Date.now() + CHECKOUT_URL_TTL_MS,
-  });
-
-  return request;
+  showBankTransferModal(eventId);
 }
 
-function readCachedCheckoutUrl(eventId) {
-  if (!eventId) return null;
+function showBankTransferModal(eventId) {
+  if (document.getElementById('posta-checkout-overlay')) return;
 
-  const cachedEntry = checkoutUrlCache.get(eventId);
-  if (!cachedEntry) return null;
-
-  if (cachedEntry.expiresAt <= Date.now()) {
-    checkoutUrlCache.delete(eventId);
-    return null;
-  }
-
-  return cachedEntry.url || null;
-}
-
-function rememberCheckoutUrl(eventId, checkoutUrl) {
-  checkoutUrlCache.set(eventId, {
-    url: checkoutUrl,
-    expiresAt: Date.now() + CHECKOUT_URL_TTL_MS,
-  });
-}
-
-function preconnectKnownCheckoutOrigins() {
-  preconnectOrigins([
-    'https://app.lemonsqueezy.com',
-    'https://js.stripe.com',
-    'https://api.stripe.com',
-  ]);
-}
-
-function preconnectCheckoutUrl(checkoutUrl) {
-  try {
-    preconnectOrigins([new URL(checkoutUrl).origin]);
-  } catch {
-    // Invalid URLs are rejected by getCheckoutUrl; this is only a defensive guard.
-  }
-}
-
-function preconnectOrigins(origins) {
-  if (typeof document === 'undefined') return;
-
-  origins.forEach((origin) => {
-    if (preconnectedOrigins.has(origin)) return;
-    preconnectedOrigins.add(origin);
-
-    const link = document.createElement('link');
-    link.rel = 'preconnect';
-    link.href = origin;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  });
-}
-
-/**
- * 모바일: 새 탭으로 checkout 열기 + Firestore 실시간 감시.
- * 결제 완료 시 Firestore 리스너가 tier 변경을 감지하여 success 이벤트를 발생시킨다.
- */
-function openPendingCheckoutTab() {
-  const checkoutWindow = window.open('', '_blank');
-  if (!checkoutWindow) return null;
-
-  checkoutWindow.document.write(`
-    <!doctype html>
-    <title>Posta 결제창 준비 중</title>
-    <body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#111827;color:#fff;display:grid;place-items:center;min-height:100vh;">
-      <div style="text-align:center;padding:24px;">
-        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">결제창을 준비하고 있어요</div>
-        <div style="font-size:14px;color:rgba(255,255,255,.68);">잠시만 기다려주세요.</div>
-      </div>
-    </body>
-  `);
-  checkoutWindow.document.close();
-  return checkoutWindow;
-}
-
-function openCheckoutNewTab(url, eventId, checkoutWindow = null) {
-  if (checkoutWindow && !checkoutWindow.closed) {
-    checkoutWindow.location.href = url;
-  } else {
-    window.open(url, '_blank');
-  }
-
-  let resolved = false;
-
-  // Firestore 실시간 감시: 결제 완료 시 success 이벤트 발생
-  const docRef = doc(db, 'events', eventId);
-  const unsub = onSnapshot(docRef, (snap) => {
-    if (resolved) return;
-    if (snap.exists()) {
-      const tier = snap.data().billing?.tier || 'free';
-      if (tier === 'plus') {
-        resolved = true;
-        console.log('[Posta] Firestore billing tier updated to plus (mobile checkout).');
-        unsub();
-        window.dispatchEvent(new CustomEvent('posta:checkout-success', { detail: { eventId } }));
-      }
-    }
-  });
-
-  // 5분 후 리스너 자동 해제 (안전장치)
-  setTimeout(() => {
-    if (resolved) return;
-    resolved = true;
-    unsub();
-    window.dispatchEvent(new CustomEvent('posta:checkout-cancel', { detail: { eventId } }));
-  }, 5 * 60 * 1000);
-}
-
-function showCheckoutPendingModal(eventId) {
-  if (document.getElementById('posta-checkout-overlay')) {
-    return {
-      remove: () => {},
-      isCancelled: () => false,
-    };
-  }
-
-  let cancelled = false;
   const overlay = document.createElement('div');
   overlay.id = 'posta-checkout-overlay';
   Object.assign(overlay.style, {
     position: 'fixed',
     inset: '0',
     zIndex: '99999',
-    background: 'rgba(0, 0, 0, 0.65)',
+    background: 'rgba(0, 0, 0, 0.68)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backdropFilter: 'blur(4px)',
-    WebkitBackdropFilter: 'blur(4px)',
-    touchAction: 'none',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    padding: '18px',
   });
 
   const modal = document.createElement('div');
   Object.assign(modal.style, {
     position: 'relative',
     width: '100%',
-    maxWidth: '420px',
-    minHeight: '180px',
+    maxWidth: '460px',
     borderRadius: '16px',
     overflow: 'hidden',
     boxShadow: '0 24px 80px rgba(0, 0, 0, 0.5)',
-    background: '#fff',
-    margin: '0 16px',
-    display: 'grid',
-    placeItems: 'center',
+    background: '#ffffff',
     color: '#111827',
-    textAlign: 'center',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   });
 
   const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
   closeBtn.textContent = '\u2715';
   Object.assign(closeBtn.style, {
     position: 'absolute',
-    top: '8px',
-    right: '8px',
+    top: '10px',
+    right: '10px',
     zIndex: '1',
     width: '32px',
     height: '32px',
     border: 'none',
     borderRadius: '50%',
-    background: 'rgba(0,0,0,0.06)',
-    color: '#666',
+    background: 'rgba(17,24,39,0.07)',
+    color: '#4b5563',
     fontSize: '16px',
     cursor: 'pointer',
     display: 'flex',
@@ -277,163 +97,150 @@ function showCheckoutPendingModal(eventId) {
   });
 
   const content = document.createElement('div');
+  Object.assign(content.style, {
+    padding: '28px',
+  });
+
+  const missingAccount = !bankAccount.bankName || !bankAccount.accountNumber || !bankAccount.accountHolder;
   content.innerHTML = `
-    <div style="width:34px;height:34px;border:3px solid rgba(139,92,246,.18);border-top-color:#8b5cf6;border-radius:50%;margin:0 auto 16px;animation:postaCheckoutSpin .8s linear infinite;"></div>
-    <div style="font-size:18px;font-weight:800;margin-bottom:8px;">결제창 준비 중</div>
-    <div style="font-size:14px;color:#6b7280;line-height:1.5;">Lemon Squeezy 결제 세션을 만들고 있어요.<br/>잠시만 기다려주세요.</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;color:#fff;font-weight:900;">P</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">Plus Pass 무통장 입금</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:2px;">입금 확인 후 관리자가 Plus를 활성화합니다.</div>
+      </div>
+    </div>
+    <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#f9fafb;margin:18px 0;">
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <span style="color:#6b7280;font-size:13px;">입금 금액</span>
+        <strong style="font-size:16px;">${formatWon(PLUS_PRICE_KRW)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <span style="color:#6b7280;font-size:13px;">은행</span>
+        <strong>${bankAccount.bankName || '미설정'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <span style="color:#6b7280;font-size:13px;">계좌번호</span>
+        <strong style="word-break:break-all;text-align:right;">${bankAccount.accountNumber || '미설정'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;">
+        <span style="color:#6b7280;font-size:13px;">예금주</span>
+        <strong>${bankAccount.accountHolder || '미설정'}</strong>
+      </div>
+    </div>
+    ${missingAccount ? `
+      <div style="border:1px solid #f59e0b33;background:#fffbeb;color:#92400e;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin-bottom:14px;">
+        입금 계좌 환경변수가 아직 설정되지 않았습니다. VITE_PLUS_BANK_NAME, VITE_PLUS_BANK_ACCOUNT, VITE_PLUS_BANK_HOLDER를 설정해주세요.
+      </div>
+    ` : ''}
+    <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#374151;">입금자명</label>
+    <input id="posta-bank-depositor" type="text" placeholder="실제 입금자명을 입력하세요" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:10px;padding:11px 12px;font-size:14px;margin-bottom:12px;" />
+    <p style="font-size:12px;color:#6b7280;line-height:1.55;margin:0 0 18px;">
+      입금 신청을 남긴 뒤 위 계좌로 입금해주세요. 확인은 수동으로 진행되며, 승인되면 이 화면의 Plus 상태가 자동으로 갱신됩니다.
+      ${bankAccount.contact ? `<br/>문의: ${bankAccount.contact}` : ''}
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="posta-copy-account" type="button" style="flex:1;min-width:120px;border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:10px;padding:11px 12px;font-weight:700;cursor:pointer;">계좌 복사</button>
+      <button id="posta-submit-bank-transfer" type="button" style="flex:1.4;min-width:150px;border:none;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border-radius:10px;padding:11px 12px;font-weight:800;cursor:pointer;">입금 신청하기</button>
+    </div>
   `;
 
-  const style = document.createElement('style');
-  style.textContent = '@keyframes postaCheckoutSpin { to { transform: rotate(360deg); } }';
+  let firestoreUnsub = null;
+  let closed = false;
 
-  const cleanup = (dispatchCancel = true) => {
-    if (!overlay.isConnected) return;
+  const cleanup = (eventName = 'posta:checkout-cancel') => {
+    if (closed) return;
+    closed = true;
+    if (firestoreUnsub) firestoreUnsub();
     overlay.remove();
     document.body.style.overflow = '';
-    if (dispatchCancel) {
-      cancelled = true;
-      window.dispatchEvent(new CustomEvent('posta:checkout-cancel', { detail: { eventId } }));
+    document.removeEventListener('keydown', handleKeyDown);
+    window.dispatchEvent(new CustomEvent(eventName, { detail: { eventId } }));
+  };
+
+  const setSubmittedState = () => {
+    content.innerHTML = `
+      <div style="padding:8px 0;text-align:center;">
+        <div style="width:46px;height:46px;border-radius:50%;background:#ecfdf5;color:#059669;display:grid;place-items:center;margin:0 auto 14px;font-size:24px;font-weight:900;">✓</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;">입금 신청이 접수되었습니다</div>
+        <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0 0 18px;">
+          ${formatWon(PLUS_PRICE_KRW)} 입금 확인 후 관리자가 Plus Pass를 활성화합니다.
+          승인되면 대시보드가 자동으로 갱신됩니다.
+        </p>
+        <button id="posta-close-bank-transfer" type="button" style="border:none;background:#111827;color:#fff;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;">확인</button>
+      </div>
+    `;
+    content.querySelector('#posta-close-bank-transfer')?.addEventListener('click', () => cleanup('posta:checkout-pending'));
+    window.dispatchEvent(new CustomEvent('posta:checkout-pending', { detail: { eventId } }));
+  };
+
+  const handleSubmit = async () => {
+    const submitBtn = content.querySelector('#posta-submit-bank-transfer');
+    const depositorInput = content.querySelector('#posta-bank-depositor');
+    const depositorName = String(depositorInput?.value || '').trim();
+
+    if (!depositorName) {
+      window.alert('입금자명을 입력해주세요.');
+      depositorInput?.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '신청 중...';
+    try {
+      const response = await requestPlusBankTransfer({
+        eventId,
+        depositorName,
+        amount: PLUS_PRICE_KRW,
+        origin: window.location.origin,
+      });
+      if (response.data?.alreadyPlus) {
+        cleanup('posta:checkout-success');
+        return;
+      }
+      setSubmittedState();
+    } catch (error) {
+      console.error('[Posta] Bank transfer request failed:', error);
+      window.alert(getBankTransferErrorMessage(error));
+      submitBtn.disabled = false;
+      submitBtn.textContent = '입금 신청하기';
     }
   };
 
-  closeBtn.addEventListener('click', () => cleanup(true));
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) cleanup(true);
-  });
+  const handleCopy = async () => {
+    const accountText = `${bankAccount.bankName} ${bankAccount.accountNumber} ${bankAccount.accountHolder}`.trim();
+    if (!accountText) return;
+    try {
+      await navigator.clipboard.writeText(accountText);
+      window.alert('계좌 정보가 복사되었습니다.');
+    } catch {
+      window.alert('복사에 실패했습니다. 계좌번호를 직접 복사해주세요.');
+    }
+  };
 
-  document.body.style.overflow = 'hidden';
-  modal.appendChild(style);
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape') cleanup();
+  };
+
+  closeBtn.addEventListener('click', () => cleanup());
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) cleanup();
+  });
+  document.addEventListener('keydown', handleKeyDown);
+
   modal.appendChild(closeBtn);
   modal.appendChild(content);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-
-  return {
-    remove: () => cleanup(false),
-    isCancelled: () => cancelled,
-  };
-}
-
-function showCheckoutModal(url, eventId) {
-  if (document.getElementById('posta-checkout-overlay')) return;
-
-  // Backdrop
-  const overlay = document.createElement('div');
-  overlay.id = 'posta-checkout-overlay';
-  Object.assign(overlay.style, {
-    position: 'fixed',
-    inset: '0',
-    zIndex: '99999',
-    background: 'rgba(0, 0, 0, 0.65)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backdropFilter: 'blur(4px)',
-    WebkitBackdropFilter: 'blur(4px)',
-    touchAction: 'none', // 모달 뒤 스크롤 방지
-  });
-
-  // Modal container
-  const modal = document.createElement('div');
-  Object.assign(modal.style, {
-    position: 'relative',
-    width: '100%',
-    maxWidth: '480px',
-    height: '90vh',
-    maxHeight: '700px',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 24px 80px rgba(0, 0, 0, 0.5)',
-    background: '#fff',
-    margin: '0 16px',
-    touchAction: 'auto',
-  });
-
-  // Close button
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '\u2715';
-  Object.assign(closeBtn.style, {
-    position: 'absolute',
-    top: '8px',
-    right: '8px',
-    zIndex: '1',
-    width: '32px',
-    height: '32px',
-    border: 'none',
-    borderRadius: '50%',
-    background: 'rgba(0,0,0,0.06)',
-    color: '#666',
-    fontSize: '16px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    lineHeight: '1',
-  });
-
-  // Iframe (부모 창 이동 차단, 결제에 필요한 권한만)
-  const iframe = document.createElement('iframe');
-  iframe.src = url;
-  // allow-top-navigation이 없으므로 iframe 내부에서 부모 창 이동 불가
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
-  Object.assign(iframe.style, {
-    width: '100%',
-    height: '100%',
-    border: 'none',
-  });
-
   document.body.style.overflow = 'hidden';
 
-  const preventBgTouch = (e) => {
-    if (!modal.contains(e.target)) e.preventDefault();
-  };
-  overlay.addEventListener('touchmove', preventBgTouch, { passive: false });
+  content.querySelector('#posta-copy-account')?.addEventListener('click', handleCopy);
+  content.querySelector('#posta-submit-bank-transfer')?.addEventListener('click', handleSubmit);
 
-  let firestoreUnsub = null;
-
-  const cleanup = (isSuccess = false) => {
-    overlay.removeEventListener('touchmove', preventBgTouch);
-    overlay.remove();
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleKeyDown);
-
-    if (firestoreUnsub) {
-      firestoreUnsub();
-      firestoreUnsub = null;
-    }
-
-    if (isSuccess) {
-      window.dispatchEvent(new CustomEvent('posta:checkout-success', { detail: { eventId } }));
-    } else {
-      // 강제로 창을 닫은 경우라도 로딩 상태 해제를 위해 cancel 이벤트를 보낼 수 있음
-      window.dispatchEvent(new CustomEvent('posta:checkout-cancel', { detail: { eventId } }));
-    }
-  };
-
-  closeBtn.addEventListener('click', () => cleanup(false));
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) cleanup(false);
-  });
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') cleanup(false);
-  };
-  document.addEventListener('keydown', handleKeyDown);
-
-  // Firestore 상태 감시: 웹훅으로 인해 DB상에서 결제가 확인되면 즉시 모달 닫기
-  const docRef = doc(db, 'events', eventId);
-  firestoreUnsub = onSnapshot(docRef, (snap) => {
-    if (snap.exists()) {
-      const tier = snap.data().billing?.tier || 'free';
-      if (tier === 'plus') {
-        console.log('[Posta] Firestore billing tier updated to plus. Closing checkout modal.');
-        cleanup(true);
-      }
+  firestoreUnsub = onSnapshot(doc(db, 'events', eventId), (snap) => {
+    if (!snap.exists()) return;
+    if (snap.data().billing?.tier === 'plus') {
+      cleanup('posta:checkout-success');
     }
   });
-
-  modal.appendChild(closeBtn);
-  modal.appendChild(iframe);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
 }

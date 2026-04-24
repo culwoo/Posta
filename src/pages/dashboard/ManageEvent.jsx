@@ -41,6 +41,8 @@ import DateFieldWithPicker from '../../components/DateFieldWithPicker';
 import TimeFieldWithPicker from '../../components/TimeFieldWithPicker';
 import { ensureContrast } from '../../utils/color';
 import { openCheckout, prepareCheckout } from '../../utils/checkout';
+import { useAuth } from '../../contexts/AuthContext';
+import { PLATFORM_ADMIN_EMAIL } from '../../config/admins';
 
 const DEFAULT_THEME = {
     primary: '#d05c80',
@@ -204,6 +206,7 @@ const SortableRow = ({ id, children }) => {
 const ManageEvent = () => {
     const { eventId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const fileInputRef = useRef(null);
     const initialSnapshotRef = useRef('');
     const posterObjectUrlRef = useRef('');
@@ -239,7 +242,10 @@ const ManageEvent = () => {
     const [isFreeEvent, setIsFreeEvent] = useState(false);
 
     const [billingTier, setBillingTier] = useState('free');
+    const [billingStatus, setBillingStatus] = useState('');
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+    const [isApprovingPlus, setIsApprovingPlus] = useState(false);
+    const isPlatformAdmin = user?.email?.toLowerCase() === PLATFORM_ADMIN_EMAIL;
 
     const [primaryColor, setPrimaryColor] = useState(DEFAULT_THEME.primary);
     const [secondaryColor, setSecondaryColor] = useState(DEFAULT_THEME.secondary);
@@ -462,6 +468,7 @@ const ManageEvent = () => {
                 });
 
                 setBillingTier(data.billing?.tier || 'free');
+                setBillingStatus(data.billing?.status || '');
 
                 initialSnapshotRef.current = normalizeDraft(hydrated);
                 setSnapshotReady(true);
@@ -480,7 +487,9 @@ const ManageEvent = () => {
     useEffect(() => {
         const unsub = onSnapshot(doc(db, 'events', eventId), (snap) => {
             if (snap.exists()) {
-                setBillingTier(snap.data().billing?.tier || 'free');
+                const billing = snap.data().billing || {};
+                setBillingTier(billing.tier || 'free');
+                setBillingStatus(billing.status || '');
             }
         });
         return () => unsub();
@@ -494,7 +503,7 @@ const ManageEvent = () => {
             setTimeout(() => setIsCheckoutLoading(false), 3000);
         } catch (error) {
             console.error('Checkout failed:', error);
-            alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            alert('입금 안내를 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
             setIsCheckoutLoading(false);
         }
     }, [eventId, isCheckoutLoading]);
@@ -503,6 +512,23 @@ const ManageEvent = () => {
         if (!eventId || billingTier === 'plus') return;
         void prepareCheckout(eventId).catch(() => {});
     }, [billingTier, eventId]);
+
+    const handleApprovePlusBankTransfer = useCallback(async () => {
+        if (!eventId || !isPlatformAdmin || isApprovingPlus) return;
+        if (!window.confirm('입금을 확인했고 Plus Pass를 활성화할까요?')) return;
+
+        setIsApprovingPlus(true);
+        try {
+            const approve = httpsCallable(functions, 'approvePlusBankTransfer');
+            await approve({ eventId });
+            alert('Plus Pass가 활성화되었습니다.');
+        } catch (error) {
+            console.error('Plus bank transfer approval failed:', error);
+            alert('Plus Pass 승인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            setIsApprovingPlus(false);
+        }
+    }, [eventId, isApprovingPlus, isPlatformAdmin]);
 
     const handleTemplatePresetSelect = useCallback((preset) => {
         setTemplateId(preset.id);
@@ -521,12 +547,15 @@ const ManageEvent = () => {
     useEffect(() => {
         const handleCheckoutSuccess = () => setIsCheckoutLoading(false);
         const handleCheckoutCancel = () => setIsCheckoutLoading(false);
+        const handleCheckoutPending = () => setIsCheckoutLoading(false);
 
         window.addEventListener('posta:checkout-success', handleCheckoutSuccess);
         window.addEventListener('posta:checkout-cancel', handleCheckoutCancel);
+        window.addEventListener('posta:checkout-pending', handleCheckoutPending);
         return () => {
             window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
             window.removeEventListener('posta:checkout-cancel', handleCheckoutCancel);
+            window.removeEventListener('posta:checkout-pending', handleCheckoutPending);
         };
     }, []);
 
@@ -880,8 +909,12 @@ const ManageEvent = () => {
             {/* Plus Pass 업그레이드 배너 */}
             {billingTier !== 'plus' && !loading && (
                 <div style={{
-                    background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(168,85,247,0.05) 100%)',
-                    border: '1px solid rgba(139,92,246,0.2)',
+                    background: billingStatus === 'pending'
+                        ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(139,92,246,0.04) 100%)'
+                        : 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(168,85,247,0.05) 100%)',
+                    border: billingStatus === 'pending'
+                        ? '1px solid rgba(245,158,11,0.24)'
+                        : '1px solid rgba(139,92,246,0.2)',
                     borderRadius: '14px',
                     padding: '1.25rem 1.5rem',
                     marginBottom: '1rem',
@@ -913,15 +946,17 @@ const ManageEvent = () => {
                             gap: '0.4rem',
                         }}>
                             <Zap size={14} style={{ color: '#8b5cf6' }} />
-                            이 공연에 Plus Pass 적용하기
+                            {billingStatus === 'pending' ? 'Plus Pass 입금 확인 대기' : '이 공연에 Plus Pass 적용하기'}
                         </div>
                         <div style={{
                             fontSize: '0.82rem',
                             color: 'var(--text-tertiary)',
                             lineHeight: 1.5,
                         }}>
-                            관객 소통을 위한 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>과 프리미엄 <strong style={{ color: 'var(--text-secondary)' }}>디자인 템플릿</strong>으로
-                            공연을 더 특별하게 만드세요.
+                            {billingStatus === 'pending'
+                                ? '입금 신청이 접수되었습니다. 입금 확인 후 관리자가 Plus Pass를 활성화합니다.'
+                                : <>관객 소통을 위한 <strong style={{ color: 'var(--text-secondary)' }}>응원 게시판</strong>과 프리미엄 <strong style={{ color: 'var(--text-secondary)' }}>디자인 템플릿</strong>으로
+                                    공연을 더 특별하게 만드세요.</>}
                         </div>
                     </div>
                     <button
@@ -945,8 +980,29 @@ const ManageEvent = () => {
                             flexShrink: 0,
                         }}
                     >
-                        {isCheckoutLoading ? '준비 중...' : '₩9,900 결제하기'}
+                        {isCheckoutLoading ? '준비 중...' : billingStatus === 'pending' ? '입금 정보 보기' : '₩9,900 입금 신청'}
                     </button>
+                    {isPlatformAdmin && billingStatus === 'pending' && (
+                        <button
+                            onClick={handleApprovePlusBankTransfer}
+                            disabled={isApprovingPlus}
+                            style={{
+                                background: '#059669',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '10px',
+                                padding: '0.6rem 1.2rem',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                cursor: isApprovingPlus ? 'wait' : 'pointer',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 10px rgba(5,150,105,0.25)',
+                                flexShrink: 0,
+                            }}
+                        >
+                            {isApprovingPlus ? '승인 중...' : '입금 확인 승인'}
+                        </button>
+                    )}
                 </div>
             )}
 

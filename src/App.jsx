@@ -33,6 +33,7 @@ import AnalyticsDashboard from './pages/dashboard/AnalyticsDashboard';
 import SettingsDashboard from './pages/dashboard/SettingsDashboard';
 import MoreDashboard from './pages/dashboard/MoreDashboard';
 import PremiumDashboard from './pages/dashboard/PremiumDashboard';
+import PlatformAdminDashboard from './pages/dashboard/PlatformAdminDashboard';
 
 // Helper Wrapper to access useParams
 const EventProviderWrapper = ({ children }) => {
@@ -63,6 +64,7 @@ function App() {
               <Route path="analytics" element={<AnalyticsDashboard />} />
               <Route path="settings" element={<SettingsDashboard />} />
               <Route path="pricing" element={<PremiumDashboard />} />
+              <Route path="admin" element={<PlatformAdminDashboard />} />
               <Route path="more" element={<MoreDashboard />} />
             </Route>
 

@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
                         <li><strong>Firebase (Google):</strong> 인증, 데이터베이스, 호스팅 — <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Firebase 개인정보처리방침</a></li>
                         <li><strong>Google Analytics:</strong> 사이트 이용 통계 분석 — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google 개인정보처리방침</a></li>
 
-                        <li><strong>Lemon Squeezy:</strong> 결제 처리 — <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener noreferrer">Lemon Squeezy 개인정보처리방침</a></li>
+                        <li><strong>무통장 입금:</strong> 입금 확인 및 유료 기능 활성화에 필요한 입금자명, 이메일, 결제 상태 정보를 처리합니다.</li>
                     </ul>
                     <p>이용자는 웹 브라우저 설정을 통해 쿠키 저장을 거부하거나 삭제할 수 있습니다. 단, 쿠키 거부 시 서비스 이용에 제한이 있을 수 있습니다.</p>
                 </section>

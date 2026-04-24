@@ -83,7 +83,8 @@ const PremiumDashboard = () => {
     const unsubs = events.map(ev =>
       onSnapshot(doc(db, 'events', ev.id), (snap) => {
         if (!snap.exists()) return;
-        const newTier = snap.data().billing?.tier || 'free';
+        const newBilling = snap.data().billing || {};
+        const newTier = newBilling.tier || 'free';
         setEvents(prev => prev.map(e => {
           if (e.id !== ev.id) return e;
           const oldTier = e.billing?.tier || 'free';
@@ -92,7 +93,7 @@ const PremiumDashboard = () => {
             setCheckoutLoadingId(null);
             setTimeout(() => setShowToast(false), 3000);
           }
-          return { ...e, billing: { ...e.billing, tier: newTier } };
+          return { ...e, billing: { ...e.billing, ...newBilling, tier: newTier } };
         }));
       })
     );
@@ -103,12 +104,15 @@ const PremiumDashboard = () => {
   React.useEffect(() => {
     const handleCheckoutSuccess = () => setCheckoutLoadingId(null);
     const handleCheckoutCancel = () => setCheckoutLoadingId(null);
+    const handleCheckoutPending = () => setCheckoutLoadingId(null);
 
     window.addEventListener('posta:checkout-success', handleCheckoutSuccess);
     window.addEventListener('posta:checkout-cancel', handleCheckoutCancel);
+    window.addEventListener('posta:checkout-pending', handleCheckoutPending);
     return () => {
         window.removeEventListener('posta:checkout-success', handleCheckoutSuccess);
         window.removeEventListener('posta:checkout-cancel', handleCheckoutCancel);
+        window.removeEventListener('posta:checkout-pending', handleCheckoutPending);
     };
   }, []);
 
@@ -120,7 +124,7 @@ const PremiumDashboard = () => {
       setTimeout(() => setCheckoutLoadingId(null), 3000);
     } catch (error) {
       console.error('Checkout failed:', error);
-      alert('결제 창을 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      alert('입금 안내를 여는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
       setCheckoutLoadingId(null);
     }
   }, [checkoutLoadingId]);
@@ -223,7 +227,7 @@ const PremiumDashboard = () => {
           fontSize: '0.82rem',
           fontFamily: 'var(--font-main)',
         }}>
-          결제는 공연별 일회성으로 진행되며, 환불은 불가합니다.
+          결제는 공연별 일회성 입금 확인 방식으로 진행되며, 환불은 불가합니다.
         </p>
 
         {/* Tier Cards */}
@@ -386,6 +390,7 @@ const PremiumDashboard = () => {
             {/* Plus events first, then free events */}
             {[...plusEvents, ...freeEvents].map((ev) => {
               const isPlus = (ev.billing?.tier || 'free') === 'plus';
+              const isPending = ev.billing?.status === 'pending' && ev.billing?.provider === 'bank_transfer';
               const isLoading = checkoutLoadingId === ev.id;
               return (
                 <GlassCard
@@ -400,6 +405,9 @@ const PremiumDashboard = () => {
                     ...(isPlus ? {
                       border: '1px solid rgba(16,185,129,0.2)',
                       background: 'rgba(16,185,129,0.04)',
+                    } : isPending ? {
+                      border: '1px solid rgba(245,158,11,0.22)',
+                      background: 'rgba(245,158,11,0.05)',
                     } : {}),
                   }}
                 >
@@ -440,27 +448,39 @@ const PremiumDashboard = () => {
                       <Check size={14} /> Plus 이용 중
                     </div>
                   ) : (
-                    <button
-                      onMouseEnter={() => handlePrepareCheckout(ev.id)}
-                      onFocus={() => handlePrepareCheckout(ev.id)}
-                      onTouchStart={() => handlePrepareCheckout(ev.id)}
-                      onClick={() => handleCheckout(ev.id)}
-                      disabled={!!checkoutLoadingId}
-                      style={{
-                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.45rem 1rem',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: checkoutLoadingId ? 'wait' : 'pointer',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 2px 8px rgba(139,92,246,0.25)',
-                      }}
-                    >
-                      {isLoading ? '준비 중...' : 'Plus 결제하기'}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {isPending && (
+                        <span style={{
+                          color: '#f59e0b',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-main)',
+                        }}>
+                          입금 확인 대기
+                        </span>
+                      )}
+                      <button
+                        onMouseEnter={() => handlePrepareCheckout(ev.id)}
+                        onFocus={() => handlePrepareCheckout(ev.id)}
+                        onTouchStart={() => handlePrepareCheckout(ev.id)}
+                        onClick={() => handleCheckout(ev.id)}
+                        disabled={!!checkoutLoadingId}
+                        style={{
+                          background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.45rem 1rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: checkoutLoadingId ? 'wait' : 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 8px rgba(139,92,246,0.25)',
+                        }}
+                      >
+                        {isLoading ? '준비 중...' : isPending ? '입금 정보 보기' : 'Plus 입금 신청'}
+                      </button>
+                    </div>
                   )}
                 </GlassCard>
               );
@@ -482,7 +502,7 @@ const PremiumDashboard = () => {
         borderRadius: '12px',
         border: '1px solid rgba(255, 255, 255, 0.05)',
       }}>
-        결제는 Lemon Squeezy를 통해 안전하게 처리됩니다.<br />
+        결제는 무통장 입금 확인 후 수동으로 처리됩니다.<br />
         모든 유료 상품은 환불이 불가합니다.
       </div>
 

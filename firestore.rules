@@ -14,6 +14,10 @@ service cloud.firestore {
         ];
     }
 
+    function isPlatformAdmin() {
+      return signedIn() && request.auth.token.email == "4242fire@gmail.com";
+    }
+
     function eventDoc(eventId) {
       return get(/databases/$(database)/documents/events/$(eventId));
     }
@@ -63,14 +67,44 @@ service cloud.firestore {
       allow delete: if isEventOwner(eventId);
 
       match /reservations/{reservationId} {
-        allow create: if signedIn() &&
-          request.resource.data.createdByUid == request.auth.uid;
+        allow create: if isEventManager(eventId) ||
+          (
+            signedIn() &&
+            request.resource.data.createdByUid == request.auth.uid &&
+            request.resource.data.status in ['reserved', 'onsite'] &&
+            request.resource.data.depositConfirmed == false &&
+            request.resource.data.keys().hasOnly([
+              'name',
+              'phone',
+              'email',
+              'ticketCount',
+              'token',
+              'createdByUid',
+              'status',
+              'depositConfirmed',
+              'description',
+              'createdAt'
+            ])
+          );
 
         allow read: if isEventManager(eventId) ||
           (signedIn() && resource.data.createdByUid == request.auth.uid);
 
         allow update: if isEventManager(eventId) ||
-          (signedIn() && resource.data.createdByUid == request.auth.uid);
+          (
+            signedIn() &&
+            resource.data.createdByUid == request.auth.uid &&
+            resource.data.status != 'paid' &&
+            resource.data.depositConfirmed != true &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'name',
+              'phone',
+              'email',
+              'ticketCount',
+              'receiptUrl',
+              'updatedAt'
+            ])
+          );
 
         allow delete: if isEventManager(eventId);
       }
@@ -119,9 +153,9 @@ service cloud.firestore {
       }
     }
 
-    // Payment audit logs — written by Cloud Functions only
+    // Payment audit logs – written by Cloud Functions only
     match /payments/{paymentId} {
-      allow read: if isAdmin();
+      allow read: if isPlatformAdmin();
       allow write: if false; // Client SDK cannot write; only Admin SDK (Cloud Functions) can
     }
   }

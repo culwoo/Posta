@@ -6,14 +6,13 @@
  * 3. extractPosterColors: Extracts theme colors from poster image with Gemini
  */
 
-const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
-const { defineSecret, defineString } = require("firebase-functions/params");
+const { defineSecret } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
-const crypto = require("crypto");
 
 // Firebase Admin init
 initializeApp();
@@ -25,17 +24,16 @@ const GMAIL_APP_PASSWORD = defineSecret("GMAIL_APP_PASSWORD");
 const EMAIL_FROM_NAME = defineSecret("EMAIL_FROM_NAME");
 const PUBLIC_BASE_URL = defineSecret("PUBLIC_BASE_URL");
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
-const LEMON_SQUEEZY_WEBHOOK_SECRET = defineSecret("LEMON_SQUEEZY_WEBHOOK_SECRET");
-const LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET = defineSecret("LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET");
-const LEMON_SQUEEZY_API_KEY = defineSecret("LEMON_SQUEEZY_API_KEY");
-const LEMON_SQUEEZY_STORE_ID = defineString("LEMON_SQUEEZY_STORE_ID");
-const LEMON_SQUEEZY_VARIANT_ID = defineString("LEMON_SQUEEZY_VARIANT_ID");
 
 const ADMIN_EMAILS = [
     "4242fire@gmail.com",
     "sseeooyyuunn@naver.com",
     "mides3912@gmail.com"
 ];
+
+const PLATFORM_ADMIN_EMAIL = "4242fire@gmail.com";
+const PLUS_PASS_PRICE = 9900;
+const PLUS_BANK_PAYMENT_ID_PREFIX = "plus_bank_transfer_";
 
 const isAdminEmail = (email) => {
     if (!email) return false;
@@ -76,6 +74,57 @@ const requireAdmin = (request) => {
     if (!isAdminEmail(email)) {
         throw new HttpsError("permission-denied", "Admin only.");
     }
+};
+
+const requirePlatformAdmin = (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Login required.");
+    }
+    const email = String(request.auth.token?.email || "").toLowerCase();
+    if (email !== PLATFORM_ADMIN_EMAIL) {
+        throw new HttpsError("permission-denied", "Platform admin only.");
+    }
+};
+
+const isEventOwnerOrAdmin = (request, eventData = {}) => {
+    if (!request.auth?.uid) return false;
+    const email = request.auth.token?.email || "";
+    return isAdminEmail(email) || eventData.ownerId === request.auth.uid;
+};
+
+const getPlusBankPaymentRef = (eventId) =>
+    db.collection("payments").doc(`${PLUS_BANK_PAYMENT_ID_PREFIX}${eventId}`);
+
+const isPlainObject = (value) =>
+    value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
+
+const cleanFirestoreData = (value) => {
+    if (value === undefined) return undefined;
+    if (Array.isArray(value)) {
+        return value.map(cleanFirestoreData).filter((item) => item !== undefined);
+    }
+    if (!isPlainObject(value)) return value;
+
+    return Object.fromEntries(
+        Object.entries(value)
+            .map(([key, item]) => [key, cleanFirestoreData(item)])
+            .filter(([, item]) => item !== undefined)
+    );
+};
+
+const rethrowHttpsError = (error) => {
+    if (error instanceof HttpsError) {
+        throw error;
+    }
+};
+
+const logCallableError = (label, error, context = {}) => {
+    console.error(label, {
+        ...context,
+        code: error?.code || null,
+        message: error?.message || String(error),
+        stack: error?.stack || null
+    });
 };
 
 const getMailTransport = () => {
@@ -185,49 +234,6 @@ const normalizeHex = (value, fallback) => {
     return /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw : fallback;
 };
 
-const getLemonCheckoutConfig = () => {
-    const storeId = String(LEMON_SQUEEZY_STORE_ID.value() || "").trim();
-    const variantId = String(LEMON_SQUEEZY_VARIANT_ID.value() || "").trim();
-
-    if (!storeId || !variantId) {
-        throw new HttpsError("failed-precondition", "Lemon Squeezy checkout is not configured.");
-    }
-
-    return { storeId, variantId };
-};
-
-const getCheckoutSigningSecret = () => {
-    const secret = String(LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET.value() || "").trim();
-    if (!secret) {
-        throw new Error("Missing LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET secret.");
-    }
-    return secret;
-};
-
-const createCheckoutSignature = ({ eventId, userId, variantId }) =>
-    crypto
-        .createHmac("sha256", getCheckoutSigningSecret())
-        .update(`checkout:${eventId}:${userId}:${variantId}`)
-        .digest("hex");
-
-const parseHexBuffer = (value) => {
-    const normalized = String(value || "").trim().toLowerCase();
-    if (!/^[0-9a-f]+$/.test(normalized) || normalized.length % 2 !== 0) {
-        return null;
-    }
-    return Buffer.from(normalized, "hex");
-};
-
-const safeHexEqual = (expectedValue, actualValue) => {
-    const expected = parseHexBuffer(expectedValue);
-    const actual = parseHexBuffer(actualValue);
-
-    if (!expected || !actual || expected.length !== actual.length) {
-        return false;
-    }
-
-    return crypto.timingSafeEqual(expected, actual);
-};
 
 /**
  * Reservation status change -> send email
@@ -573,86 +579,206 @@ Constraints:
     }
 );
 
-exports.createLemonSqueezyCheckout = onCall(
+exports.requestPlusBankTransfer = onCall(
     {
         region: "asia-northeast3",
-        secrets: [LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET, LEMON_SQUEEZY_API_KEY]
+        invoker: "public"
     },
     async (request) => {
-        if (!request.auth?.uid) {
-            throw new HttpsError("unauthenticated", "Login required.");
-        }
-
         const eventId = String(request.data?.eventId || "").trim();
-        if (!eventId) {
-            throw new HttpsError("invalid-argument", "eventId is required.");
-        }
 
-        const eventDoc = await getEventDoc(eventId);
-        const eventData = eventDoc.data() || {};
-        const manager = await isEventManager(request, eventId, eventData);
+        try {
+            if (!request.auth?.uid) {
+                throw new HttpsError("unauthenticated", "Login required.");
+            }
 
-        if (!manager) {
-            throw new HttpsError("permission-denied", "Event managers only.");
-        }
+            const depositorName = String(request.data?.depositorName || "").trim();
+            const originUrl = String(request.data?.origin || "").trim();
 
-        const { storeId, variantId } = getLemonCheckoutConfig();
-        const apiKey = String(LEMON_SQUEEZY_API_KEY.value() || "").trim();
-        if (!apiKey) {
-            throw new HttpsError("failed-precondition", "Lemon Squeezy API key is not configured.");
-        }
+            if (!eventId) {
+                throw new HttpsError("invalid-argument", "eventId is required.");
+            }
+            if (!depositorName) {
+                throw new HttpsError("invalid-argument", "depositorName is required.");
+            }
 
-        const userId = request.auth.uid;
-        const signature = createCheckoutSignature({ eventId, userId, variantId });
+            const eventRef = db.collection("events").doc(eventId);
+            const paymentRef = getPlusBankPaymentRef(eventId);
+            const now = new Date().toISOString();
+            const requesterEmail = request.auth.token?.email || "";
+            let alreadyPlus = false;
 
-        // Lemon Squeezy Checkout API로 세션 생성
-        const apiResponse = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/vnd.api+json",
-                "Accept": "application/vnd.api+json",
-            },
-            body: JSON.stringify({
-                data: {
-                    type: "checkouts",
-                    attributes: {
-                        checkout_data: {
-                            custom: {
-                                eventId,
-                                userId,
-                                variantId,
-                                signature,
-                            }
-                        }
-                    },
-                    relationships: {
-                        store: {
-                            data: { type: "stores", id: storeId }
-                        },
-                        variant: {
-                            data: { type: "variants", id: variantId }
-                        }
-                    }
+            await db.runTransaction(async (transaction) => {
+                const eventSnapshot = await transaction.get(eventRef);
+                if (!eventSnapshot.exists) {
+                    throw new HttpsError("not-found", "Event not found.");
                 }
-            })
-        });
 
-        if (!apiResponse.ok) {
-            const errorText = await apiResponse.text();
-            console.error("[LemonSqueezy] Checkout API error:", apiResponse.status, errorText);
-            throw new HttpsError("internal", "결제 세션을 생성하지 못했습니다.");
+                const eventData = eventSnapshot.data() || {};
+                if (!isEventOwnerOrAdmin(request, eventData)) {
+                    throw new HttpsError("permission-denied", "Event owner only.");
+                }
+
+                const existingBilling = eventData.billing || {};
+                if (existingBilling.tier === "plus") {
+                    alreadyPlus = true;
+                    return;
+                }
+
+                const billingData = cleanFirestoreData({
+                    ...existingBilling,
+                    tier: "free",
+                    price: PLUS_PASS_PRICE,
+                    status: "pending",
+                    provider: "bank_transfer",
+                    requestedAt: now,
+                    requestedBy: request.auth.uid,
+                    requesterEmail,
+                    depositorName,
+                    originUrl: originUrl || null,
+                    expiresAt: null
+                });
+
+                const paymentData = cleanFirestoreData({
+                    eventId,
+                    eventTitle: eventData.title || "",
+                    userId: request.auth.uid,
+                    requesterEmail,
+                    provider: "bank_transfer",
+                    amount: PLUS_PASS_PRICE,
+                    currency: "KRW",
+                    status: "pending",
+                    depositorName,
+                    originUrl: originUrl || null,
+                    requestedAt: now,
+                    updatedAt: now
+                });
+
+                transaction.set(eventRef, { billing: billingData }, { merge: true });
+                transaction.set(paymentRef, paymentData, { merge: true });
+            });
+
+            if (alreadyPlus) {
+                return { success: true, alreadyPlus: true };
+            }
+
+            console.log(`[Billing] Plus bank transfer requested for event ${eventId} by ${requesterEmail || request.auth.uid}`);
+            return { success: true, status: "pending" };
+        } catch (error) {
+            rethrowHttpsError(error);
+            logCallableError("[Billing] Failed to request Plus bank transfer", error, {
+                eventId,
+                uid: request.auth?.uid || null,
+                email: request.auth?.token?.email || null
+            });
+            throw new HttpsError("internal", "입금 신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
         }
+    }
+);
 
-        const result = await apiResponse.json();
-        const checkoutUrl = result?.data?.attributes?.url;
+exports.approvePlusBankTransfer = onCall(
+    {
+        region: "asia-northeast3",
+        invoker: "public"
+    },
+    async (request) => {
+        const eventId = String(request.data?.eventId || "").trim();
 
-        if (!checkoutUrl) {
-            console.error("[LemonSqueezy] No checkout URL in response:", JSON.stringify(result));
-            throw new HttpsError("internal", "결제 URL을 받지 못했습니다.");
+        try {
+            requirePlatformAdmin(request);
+
+            if (!eventId) {
+                throw new HttpsError("invalid-argument", "eventId is required.");
+            }
+
+            const eventRef = db.collection("events").doc(eventId);
+            const paymentRef = getPlusBankPaymentRef(eventId);
+            const now = new Date().toISOString();
+            const approvedBy = request.auth.token?.email || request.auth.uid;
+            let alreadyPlus = false;
+
+            await db.runTransaction(async (transaction) => {
+                const eventSnapshot = await transaction.get(eventRef);
+                if (!eventSnapshot.exists) {
+                    throw new HttpsError("not-found", "Event not found.");
+                }
+
+                const eventData = eventSnapshot.data() || {};
+                const existingBilling = eventData.billing || {};
+                if (existingBilling.tier === "plus") {
+                    const purchasedBy = existingBilling.purchasedBy ||
+                        existingBilling.requestedBy ||
+                        eventData.ownerId ||
+                        request.auth.uid;
+                    const completedPaymentData = cleanFirestoreData({
+                        eventId,
+                        eventTitle: eventData.title || "",
+                        userId: purchasedBy,
+                        requesterEmail: existingBilling.requesterEmail || null,
+                        provider: existingBilling.provider || "bank_transfer",
+                        amount: existingBilling.price || PLUS_PASS_PRICE,
+                        currency: "KRW",
+                        status: "completed",
+                        depositorName: existingBilling.depositorName || null,
+                        requestedAt: existingBilling.requestedAt || null,
+                        approvedBy: existingBilling.approvedBy || approvedBy,
+                        completedAt: existingBilling.approvedAt || existingBilling.purchasedAt || now,
+                        updatedAt: now
+                    });
+                    transaction.set(paymentRef, completedPaymentData, { merge: true });
+                    alreadyPlus = true;
+                    return;
+                }
+
+                const purchasedBy = existingBilling.requestedBy || eventData.ownerId || request.auth.uid;
+                const billingData = cleanFirestoreData({
+                    ...existingBilling,
+                    tier: "plus",
+                    price: PLUS_PASS_PRICE,
+                    purchasedAt: now,
+                    purchasedBy,
+                    provider: "bank_transfer",
+                    status: "completed",
+                    approvedAt: now,
+                    approvedBy,
+                    expiresAt: null
+                });
+
+                const paymentData = cleanFirestoreData({
+                    eventId,
+                    eventTitle: eventData.title || "",
+                    userId: purchasedBy,
+                    requesterEmail: existingBilling.requesterEmail || null,
+                    provider: "bank_transfer",
+                    amount: PLUS_PASS_PRICE,
+                    currency: "KRW",
+                    status: "completed",
+                    depositorName: existingBilling.depositorName || null,
+                    requestedAt: existingBilling.requestedAt || null,
+                    approvedBy,
+                    completedAt: now,
+                    updatedAt: now
+                });
+
+                transaction.set(eventRef, { billing: billingData }, { merge: true });
+                transaction.set(paymentRef, paymentData, { merge: true });
+            });
+
+            if (alreadyPlus) {
+                return { success: true, alreadyPlus: true, message: "이미 Plus 상태입니다." };
+            }
+
+            console.log(`[Billing] Approved Plus bank transfer for event ${eventId} by ${approvedBy}`);
+            return { success: true, message: "Plus 패스가 활성화되었습니다." };
+        } catch (error) {
+            rethrowHttpsError(error);
+            logCallableError("[Billing] Failed to approve Plus bank transfer", error, {
+                eventId,
+                uid: request.auth?.uid || null,
+                email: request.auth?.token?.email || null
+            });
+            throw new HttpsError("internal", "Plus Pass 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         }
-
-        return { url: checkoutUrl };
     }
 );
 
@@ -731,111 +857,58 @@ exports.verifyTicket = onCall({ region: "asia-northeast3", invoker: "public" }, 
     };
 });
 
-exports.lemonSqueezyWebhook = onRequest(
+
+
+exports.adminUpgradeToPlusPass = onCall(
     {
         region: "asia-northeast3",
-        secrets: [LEMON_SQUEEZY_WEBHOOK_SECRET, LEMON_SQUEEZY_CHECKOUT_SIGNING_SECRET]
+        invoker: "public"
     },
-    async (req, res) => {
-        try {
-            const webhookSecret = String(LEMON_SQUEEZY_WEBHOOK_SECRET.value() || "").trim();
-            if (!webhookSecret || !req.rawBody) {
-                console.error("[LemonSqueezy] Missing webhook secret or raw body");
-                return res.status(500).send("Webhook not configured");
-            }
+    async (request) => {
+        requirePlatformAdmin(request);
 
-            const digest = crypto.createHmac("sha256", webhookSecret).update(req.rawBody).digest("hex");
-            const signature = req.get("X-Signature") || "";
-
-            if (!safeHexEqual(digest, signature)) {
-                console.error("[LemonSqueezy] Invalid signature");
-                return res.status(401).send("Invalid signature");
-            }
-
-            const body = req.body || {};
-            const eventName = body?.meta?.event_name;
-            const customData = body?.meta?.custom_data || {};
-
-            if (eventName === "order_created") {
-                const eventId = String(customData.eventId || "").trim();
-                const userId = String(customData.userId || "").trim();
-                const variantId = String(customData.variantId || "").trim();
-                const checkoutSignature = String(customData.signature || "").trim();
-                const expectedVariantId = getLemonCheckoutConfig().variantId;
-
-                // Extract orderId from Lemon Squeezy payload
-                const orderId = String(body?.data?.id || body?.data?.attributes?.order_number || "").trim();
-
-                if (!eventId || !userId || !variantId || !checkoutSignature) {
-                    console.error("[LemonSqueezy] Missing custom_data fields");
-                    return res.status(400).send("Missing custom data");
-                }
-
-                if (variantId !== expectedVariantId) {
-                    console.error("[LemonSqueezy] Unexpected variantId", variantId);
-                    return res.status(400).send("Unexpected variant");
-                }
-
-                const expectedSignature = createCheckoutSignature({ eventId, userId, variantId });
-                if (!safeHexEqual(expectedSignature, checkoutSignature)) {
-                    console.error("[LemonSqueezy] Invalid checkout signature");
-                    return res.status(401).send("Invalid checkout signature");
-                }
-
-                const eventRef = db.collection("events").doc(eventId);
-                const eventSnapshot = await eventRef.get();
-                if (!eventSnapshot.exists) {
-                    console.error("[LemonSqueezy] Event not found", eventId);
-                    return res.status(404).send("Event not found");
-                }
-
-                // Idempotency check: skip if already processed with the same orderId
-                const existingBilling = eventSnapshot.data()?.billing;
-                if (orderId && existingBilling?.orderId === orderId) {
-                    console.log(`[LemonSqueezy] Already processed orderId: ${orderId} for event: ${eventId}`);
-                    return res.status(200).send("Already processed");
-                }
-
-                console.log(`[LemonSqueezy] Received order_created for eventId: ${eventId}, userId: ${userId}, orderId: ${orderId}`);
-
-                const billingData = {
-                    tier: "plus",
-                    price: 9900,
-                    purchasedAt: new Date().toISOString(),
-                    purchasedBy: userId,
-                    provider: "lemonsqueezy",
-                    variantId,
-                    orderId: orderId || null
-                };
-
-                await eventRef.set({ billing: billingData }, { merge: true });
-                console.log(`[LemonSqueezy] Successfully upgraded event ${eventId} to PLUS`);
-
-                // Save payment audit log (non-blocking: failure here should not affect webhook response)
-                try {
-                    await db.collection("payments").add({
-                        eventId,
-                        userId,
-                        provider: "lemonsqueezy",
-                        orderId: orderId || null,
-                        variantId,
-                        amount: 9900,
-                        currency: "KRW",
-                        status: "completed",
-                        lemonSqueezyEventName: eventName,
-                        createdAt: new Date().toISOString()
-                    });
-                    console.log(`[LemonSqueezy] Payment audit log saved for event: ${eventId}`);
-                } catch (auditError) {
-                    console.error("[LemonSqueezy] Failed to save payment audit log:", auditError);
-                    // Do NOT re-throw: the billing update already succeeded
-                }
-            }
-
-            res.status(200).send("OK");
-        } catch (error) {
-            console.error("[LemonSqueezy] Webhook Error:", error);
-            res.status(500).send("Internal Server Error");
+        const eventId = String(request.data?.eventId || "").trim();
+        if (!eventId) {
+            throw new HttpsError("invalid-argument", "eventId is required.");
         }
+
+        const eventRef = db.collection("events").doc(eventId);
+        const eventSnapshot = await eventRef.get();
+        if (!eventSnapshot.exists) {
+            throw new HttpsError("not-found", "Event not found.");
+        }
+
+        const existingBilling = eventSnapshot.data()?.billing;
+        if (existingBilling?.tier === "plus") {
+            return { success: true, alreadyPlus: true, message: "이미 Plus 상태입니다." };
+        }
+
+        const billingData = {
+            tier: "plus",
+            price: 9900,
+            purchasedAt: new Date().toISOString(),
+            purchasedBy: request.auth.uid,
+            provider: "manual",
+        };
+
+        await eventRef.set({ billing: billingData }, { merge: true });
+        console.log(`[Admin] Upgraded event ${eventId} to PLUS by ${request.auth.token?.email}`);
+
+        try {
+            await db.collection("payments").add({
+                eventId,
+                userId: request.auth.uid,
+                provider: "manual",
+                amount: 9900,
+                currency: "KRW",
+                status: "completed",
+                approvedBy: request.auth.token?.email || request.auth.uid,
+                createdAt: new Date().toISOString(),
+            });
+        } catch (auditError) {
+            console.error("[Admin] Failed to save payment audit log:", auditError);
+        }
+
+        return { success: true, message: "Plus 패스가 활성화되었습니다." };
     }
 );

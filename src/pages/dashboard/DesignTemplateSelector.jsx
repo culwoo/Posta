@@ -176,7 +176,7 @@ const DesignTemplateSelector = ({
                         disabled={isCheckoutLoading}
                         style={{ ...checkoutButtonStyle, cursor: isCheckoutLoading ? 'wait' : 'pointer' }}
                     >
-                        {isCheckoutLoading ? '준비 중...' : 'Plus 결제하고 사용하기'}
+                        {isCheckoutLoading ? '준비 중...' : 'Plus 입금 신청하고 사용하기'}
                     </button>
                 </div>
             ) : (

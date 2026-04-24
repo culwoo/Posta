@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { LogOut, Home, BarChart2, Settings, User, Users, Menu, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Home, BarChart2, Settings, User, Users, Menu, Sun, Moon, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import GlassButton from '../../components/ui/GlassButton';
+import { PLATFORM_ADMIN_EMAIL } from '../../config/admins';
 const makeSidebarStyle = (collapsed) => ({
     width: collapsed ? '68px' : '250px',
     display: 'flex',
@@ -48,20 +49,33 @@ const DashboardLayout = () => {
     const location = useLocation();
     const currentPath = location.pathname;
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const isPlatformAdmin = user?.email?.toLowerCase() === PLATFORM_ADMIN_EMAIL;
 
-    const desktopNavItems = useMemo(() => ([
-        { to: '/dashboard', label: '내 이벤트', icon: Home, match: (path) => path === '/dashboard' || path.startsWith('/dashboard/event') || path === '/dashboard/create' },
-        { to: '/dashboard/audience', label: '내 관객들', icon: Users, match: (path) => path.startsWith('/dashboard/audience') },
-        { to: '/dashboard/analytics', label: '정산/인사이트', icon: BarChart2, match: (path) => path.startsWith('/dashboard/analytics') },
-        { to: '/dashboard/settings', label: '설정', icon: Settings, match: (path) => path.startsWith('/dashboard/settings') }
-    ]), []);
+    const desktopNavItems = useMemo(() => {
+        const items = [
+            { to: '/dashboard', label: '내 이벤트', icon: Home, match: (path) => path === '/dashboard' || path.startsWith('/dashboard/event') || path === '/dashboard/create' },
+            { to: '/dashboard/audience', label: '내 관객들', icon: Users, match: (path) => path.startsWith('/dashboard/audience') },
+            { to: '/dashboard/analytics', label: '정산/인사이트', icon: BarChart2, match: (path) => path.startsWith('/dashboard/analytics') },
+            { to: '/dashboard/settings', label: '설정', icon: Settings, match: (path) => path.startsWith('/dashboard/settings') }
+        ];
+        if (isPlatformAdmin) {
+            items.push({ to: '/dashboard/admin', label: '관리자', icon: ShieldCheck, match: (path) => path.startsWith('/dashboard/admin') });
+        }
+        return items;
+    }, [isPlatformAdmin]);
 
-    const mobileNavItems = useMemo(() => ([
-        { to: '/dashboard', label: '이벤트', icon: Home, match: desktopNavItems[0].match },
-        { to: '/dashboard/audience', label: '관객', icon: Users, match: desktopNavItems[1].match },
-        { to: '/dashboard/analytics', label: '정산', icon: BarChart2, match: desktopNavItems[2].match },
-        { to: '/dashboard/more', label: '더보기', icon: Menu, match: (path) => path.startsWith('/dashboard/more') || path.startsWith('/dashboard/settings') || path.startsWith('/dashboard/pricing') }
-    ]), [desktopNavItems]);
+    const mobileNavItems = useMemo(() => {
+        const items = [
+            { to: '/dashboard', label: '이벤트', icon: Home, match: desktopNavItems[0].match },
+            { to: '/dashboard/audience', label: '관객', icon: Users, match: desktopNavItems[1].match },
+            { to: '/dashboard/analytics', label: '정산', icon: BarChart2, match: desktopNavItems[2].match },
+            { to: '/dashboard/more', label: '더보기', icon: Menu, match: (path) => path.startsWith('/dashboard/more') || path.startsWith('/dashboard/settings') || path.startsWith('/dashboard/pricing') }
+        ];
+        if (isPlatformAdmin) {
+            items.push({ to: '/dashboard/admin', label: '관리자', icon: ShieldCheck, match: (path) => path.startsWith('/dashboard/admin') });
+        }
+        return items;
+    }, [desktopNavItems, isPlatformAdmin]);
 
     if (!loading && !user) {
         return <DashboardLogin />;
@@ -303,7 +317,7 @@ const DashboardLayout = () => {
                         borderRight: 'none',
                         borderBottom: 'none',
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(4,1fr)',
+                        gridTemplateColumns: `repeat(${mobileNavItems.length},1fr)`,
                         zIndex: 95,
                         height: '64px',
                         padding: 0,
